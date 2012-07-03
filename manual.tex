@@ -49,13 +49,14 @@ This manual is structured as follows: after an introduction, we describe first \
 \end{itemize}
 
 \section{General usage}
+\label{sec:general-usage}
 Both \timeplot{} and \splot{} accept input in a strictly specified format, not arbitrary logs. A file in this format is called \emph{trace}. However, this format is designed to be trivial to generate from log files using text processing tools such as awk, sed or perl.
 
 \def\awk{\textbf{awk}}
 
 \textbf{Note:} I found \awk{} to be the most useful tool of these. I know that some people have used perl or python to generate traces, but I don't know enough of perl and find Python not terse enough for writing one-liners, so I always use \awk{}.
 
-\textbf{Note:} You will immensely benefit from learning to efficiently use \awk{}. If you are not yet an \awk{} guru, please proceed to read one of the multitude of available tutorials. Concentrate on googling for "awk one-liners explained" or something like that: since you are going to use the tools interactively, it is vital to be able to write \awk{} one-liners for typical tasks. However, in most cases it will suffice to know just the very basics of \awk{} explained on the first page of any decent tutorial.
+\textbf{Note:} You will immensely benefit from learning to efficiently use \awk{}. If you are not yet an \awk{} guru, please proceed to read one of the multitude of available tutorials. Concentrate on googling for ``awk one-liners explained'' or something like that: since you are going to use the tools interactively, it is vital to be able to write \awk{} one-liners for typical tasks. However, in most cases it will suffice to know just the very basics of \awk{} explained on the first page of any decent tutorial.
 
 The general pattern of usage is displayed on figure \ref{fig:general-usage}.
 
@@ -97,9 +98,9 @@ The meaning of the entries was as follows:
 
 \begin{itemize}
 \item There's machine name, timestamp and process ID in the entry. The last field is the task ID which is irrelevant for our current drawing purposes.
-\item \verb|Begin| means "starting to execute a task".
-\item \verb|GetCommonData| means "finished getting the task's data from memcached, starting actual computations".
-\item \verb|End| means "computations for a task finished".
+\item \verb|Begin| means ``starting to execute a task''.
+\item \verb|GetCommonData| means ``finished getting the task's data from memcached, starting actual computations''.
+\item \verb|End| means ``computations for a task finished''.
 \end{itemize}
 
 \begin{verbatim}
@@ -141,13 +142,13 @@ There are several anomalies on this picture:
 
 \textbf{Whitespace on the left: Plateaus.} The plateaus mean that there are moments when no tasks are being picked up at all. Either the queue is hung up, or the task producer. We also see how big an impact this has on the overall cluster utilization: a single 1-second plateau is worth 160 seconds of computations (as there are 160 workers on this picture)!
 
-\textbf{The slope on the left is nonlinear.} The slope becomes less vertical at the end of each slope line. This means that task pickup rate (or perhaps task generation rate) is not constant. There's a "tail" in task delivery times. 
+\textbf{The slope on the left is nonlinear.} The slope becomes less vertical at the end of each slope line. This means that task pickup rate (or perhaps task generation rate) is not constant. There's a ``tail'' in task delivery times. 
 
 \textbf{Some blue bars are rather long.} This means that memcached fetches sometimes take a long time~--- comparable with computation time. We should optimize them.
 
 \textbf{Vertical patterns of white space and blue bars lining up on their left edge.} This means that there are moments when everyone's got nothing to do and the task queue is empty, and then suddenly a lot of tasks appear in the queue and everyone is busy again. This is probably a problem with the task producer~--- maybe it is sending tasks in batches, or something like that.
 
-\textbf{A lot of white space on the right.} This means that in the end of the program execution, when all tasks are already in the queue and no new ones will appear, a lot of time is spend when faster workers wait for slower workers. The program finishes when the very last worker finishes. The fraction of this whitespace is very well worth 5-10\% of the total program time. This anomaly is called "the long tail effect" and can be eased by increasing the task granularity (i.e. submitting many short tasks rather than several long ones). However, this will obviously increase load on the queue, so we have a trade-off here.
+\textbf{A lot of white space on the right.} This means that in the end of the program execution, when all tasks are already in the queue and no new ones will appear, a lot of time is spend when faster workers wait for slower workers. The program finishes when the very last worker finishes. The fraction of this whitespace is very well worth 5-10\% of the total program time. This anomaly is called ``the long tail effect'' and can be eased by increasing the task granularity (i.e. submitting many short tasks rather than several long ones). However, this will obviously increase load on the queue, so we have a trade-off here.
 
 \vspace{3mm}
 
@@ -159,9 +160,9 @@ Let us now consider in detail all the concepts necessary to understand and use \
 
 \begin{description}
 \item[Track (also process)] An entity which changes its state between several values (performs several activities) over time. At any moment, a process is doing at most one activity. We're usually interested in seeing the visual pattern emerging between different tracks. For example, it is often meaningful to assign 1 track = 1 thread in a multi-threaded program (in a distributed program one should of course include the machine into the track id).
-\item[Activity] A period during which a process is in a particular problem-specific logical state. A single activity is drawn with a single color, as a bar which is horizontally as long as the activity (if there are a lot of tracks, this bar can be as thin as a hairline). For example, if we have a program whose threads are either computing, doing IO or waiting idly, we may depict the 'computing' activity with orange color, IO as blue and idle waiting as lack of activity (no color at all).
-\item[Event] Mark of the beginning or end of an activity on a particular track, specifying the activity's color. There are also ``text'' events which allow to draw text markers above the usual colored bars. An event has a timestamp, track and event type (activity start / activity end / text). For example, when our hypothetical program starts doing IO in thread T, we should represent this in \splot{}'s input as an event "start blue activity on track T".
-\item[Color] Colors in \splot{} can be specified in several ways. In the simplest form, it can be an SVG color name or hex code (e.g. "red" or "lightblue" or "\#ff0033"), it can be an arbitrary string (then a random color will be generated so that different strings correspond to different colors~--- this is useful to color-code an unknown number of different types of activities, e.g. if you have worker processes servicing several clients and you wish to get a picture of who services whom and color-code the clients: "client-5"), and it can be an arbitrary string within a color scheme (e.g. "/success/client-5" or "/failure/client-5", and you might define the "success" colorscheme to consist of several greenish colors and "failure" of reddish).
+\item[Activity] A period during which a process is in a particular problem-specific logical state. A single activity is drawn with a single color, as a bar which is horizontally as long as the activity (if there are a lot of tracks, this bar can be as thin as a hairline). For example, if we have a program whose threads are either computing, doing IO or waiting idly, we may depict the `computing' activity with orange color, IO as blue and idle waiting as lack of activity (no color at all).
+\item[Event] Mark of the beginning or end of an activity on a particular track, specifying the activity's color. There are also ``text'' events which allow to draw text markers above the usual colored bars. An event has a timestamp, track and event type (activity start / activity end / text). For example, when our hypothetical program starts doing IO in thread T, we should represent this in \splot{}'s input as an event ``start blue activity on track ''.
+\item[Color] Colors in \splot{} can be specified in several ways. In the simplest form, it can be an SVG color name or hex code (e.g. ``red'' or ``lightblue'' or ``\#ff0033''), it can be an arbitrary string (then a random color will be generated so that different strings correspond to different colors~--- this is useful to color-code an unknown number of different types of activities, e.g. if you have worker processes servicing several clients and you wish to get a picture of who services whom and color-code the clients: ``client-5''), and it can be an arbitrary string within a color scheme (e.g. ``/success/client-5'' or ``/failure/client-5'', and you might define the ``success'' colorscheme to consist of several greenish colors and ``failure'' of reddish).
 \item[Color scheme] A list of colors which will be cycled between when generating colors for tracks whose color is not specified explicitly by a SVG color name or hex code.
 \end{description}
 
@@ -193,7 +194,7 @@ Format & Meaning \\
 
 \subsection{Simple example}
 
-This example has two tracks "thread-1" and "thread-2" and demonstrates most of the basic features.
+This example has two tracks ``thread-1'' and ``thread-2'' and demonstrates most of the basic features.
 
 \begin{verbatim}
 2010-10-21 16:45:12.014 >thread-2 blue
@@ -229,7 +230,7 @@ Result:
 \subsection{Advanced features}
 
 \subsubsection{Bar height}
-Bar height is specified with \verb|-bh|: either \verb|-bh fill| or \verb|-bh HEIGHT| (e.g. -bh 5). \verb|fill| means "set bar height to fill the whole vertical space". Consider the previous simple example, here it is with \verb|-bh fill|:
+Bar height is specified with \verb|-bh|: either \verb|-bh fill| or \verb|-bh HEIGHT| (e.g. -bh 5). \verb|fill| means ``set bar height to fill the whole vertical space''. Consider the previous simple example, here it is with \verb|-bh fill|:
 
 \begin{figure}[h]
 \center
@@ -239,9 +240,9 @@ Bar height is specified with \verb|-bh|: either \verb|-bh fill| or \verb|-bh HEI
 
 \verb|-bh fill| is vital when you have a lot of tracks (at least dozens). Perhaps it should be the default.
 
-\subsubsection{Expiring activities~--- if "<" is missing}
+\subsubsection{Expiring activities~--- if \texttt{<} is missing}
 
-In systems where components can crash (which is, most systems :) ), it might happen so that your log catches only the beginning of an activity but not its end, because the component has crashed in the middle. You can tell \splot{} "expire all activities if they take longer than X seconds" by using \verb|-expire X|; then, if an activity has not finished within X seconds, \splot{} will draw a dashed line and an X marker, meaning that the process probably crashed somewhere on the dashed line\footnote{It's probably meaningful to specify expiration times for each activity separately, but currently \splot{} has just a single global option}.
+In systems where components can crash (which is, most systems :) ), it might happen so that your log catches only the beginning of an activity but not its end, because the component has crashed in the middle. You can tell \splot{} ``expire all activities if they take longer than X seconds'' by using \verb|-expire X|; then, if an activity has not finished within X seconds, \splot{} will draw a dashed line and an X marker, meaning that the process probably crashed somewhere on the dashed line\footnote{It's probably meaningful to specify expiration times for each activity separately, but currently \splot{} has just a single global option}.
 
 Consider a small example similar to the one we had before.
 
@@ -278,7 +279,7 @@ Here's what we get:
 \caption{Using the \texttt{-expire} option with \splot{}}
 \end{figure}
 
-Here we see that perhaps "worker-1" (here drawn second, as its first event happened later than worker-2's) crashed and that's why it didn't do anything in the later parts of the graph.
+Here we see that perhaps ``worker-1'' (here drawn second, as its first event happened later than worker-2's) crashed and that's why it didn't do anything in the later parts of the graph.
 
 Figure \ref{fig:splot-expire-large-example} shows a more complex real-life example from a cluster (the input log has unfortunately been lost). Here a large number of workers are preempted at once.
 
@@ -289,9 +290,9 @@ Figure \ref{fig:splot-expire-large-example} shows a more complex real-life examp
 \label{fig:splot-expire-large-example}
 \end{figure}
 
-\subsubsection{Phantom color~--- if ">" is missing}
+\subsubsection{Phantom color~--- if \texttt{>} is missing}
 
-Sometimes you process logs which start in the middle of the program's execution, so the log doesn't catch the beginning events of activities that were active at the moment the log was started (however, the log \emph{does} catch their finishing events). \splot{} can display such "phantom" activities in a color of your choice, using the \verb|-phantom COLOR| option. Specifically, if a track starts with a "<" event instead of ">", then \splot{} will assume that there was a ">" event with color COLOR in the past on this track.
+Sometimes you process logs which start in the middle of the program's execution, so the log doesn't catch the beginning events of activities that were active at the moment the log was started (however, the log \emph{does} catch their finishing events). \splot{} can display such ``phantom'' activities in a color of your choice, using the \verb|-phantom COLOR| option. Specifically, if a track starts with a \texttt{<} event instead of \texttt{>}, then \splot{} will assume that there was a \texttt{>} event with color COLOR in the past on this track.
 
 Consider the same example as above, but let us cut it in the beginning, as if we had a truncated log:
 
@@ -343,7 +344,7 @@ The trace looks like this:
 2011-07-27 02:42:03.498 >RACK2UNIT030.9e7a 071C
 ...
 \end{verbatim}
-So, we use track names of the form \verb|MACHINE.WORKERID| and instead of using color at ">" events, we use the client ID, asking \splot{} to color-code clients for us. The result is shown on figure \ref{fig:splot-color-gen}. Here red color denotes tasks that completed unsuccessfully and other colors (e.g. green and blue; red is excluded from the default color scheme precisely for situations like this) encode different clients\footnote{Yes, as this rather crazy picture might hint, the program \emph{did} have lots of problems~--- exposing them, that's what \splot{} is for.}.
+So, we use track names of the form \verb|MACHINE.WORKERID| and instead of using color at \texttt{>} events, we use the client ID, asking \splot{} to color-code clients for us. The result is shown on figure \ref{fig:splot-color-gen}. Here red color denotes tasks that completed unsuccessfully and other colors (e.g. green and blue; red is excluded from the default color scheme precisely for situations like this) encode different clients\footnote{Yes, as this rather crazy picture might hint, the program \emph{did} have lots of problems~--- exposing them, that's what \splot{} is for.}.
 
 \begin{figure}[h]
 \center
@@ -354,7 +355,7 @@ So, we use track names of the form \verb|MACHINE.WORKERID| and instead of using 
 
 Assume the same case as above with worker processes servicing different clients. Assume also that worker processes might be in two modes: regular and workstealing (if they have nothing to do with their current client, they try to service tasks of some other client). We wish to depict regular tasks and tasks picked by work-stealing in different shades: e.g. regular tasks as bright colors and work-stolen ones as pale. We still wish to use color generation for both. This can be achieved by using color schemes. Specifically, we'll color-core regular tasks by \verb|TIMESTAMP >WORKER CLIENT| and work-stolen tasks by \verb|TIMESTAMP <WORKER /ws/CLIENT|. This tells \splot{} to generate colors for regular tasks from the default color scheme and for work-stolen tasks from the \verb|ws| color scheme, which we must specify in \verb|-colorscheme| parameters, e.g. \verb|-colorscheme ws='lightblue lightgray lightgreen pink beige'| (use more colors if you wish to distinguish between more clients).
 
-% TODO Example from presentation
+\emph{(unfortunately, an example log illustrating this has been lost)}
 
 \subsection{Option reference}
 
@@ -371,7 +372,7 @@ Option & Meaning & Default value \\
 \hline
 \verb|-h HEIGHT|  & Output height, pixels & \verb|480| \\
 \hline
-\verb|-bh BARHEIGHT| & Vertical height of each track's activity bars, pixels, or 'fill' to use all the available vertical space & \verb|fill| \\
+\verb|-bh BARHEIGHT| & Vertical height of each track's activity bars, pixels, or \verb|fill| to use all the available vertical space & \verb|fill| \\
 \hline
 \verb|-tf PATTERN| & Format of time in the input file as in http://linux.die.net/man/3/strptime but with fractional seconds supported via \verb|\%OS| - will parse \verb|12.4039| or \verb|12,4039|.  Also, \verb|%^[+-][N]s| will parse seconds since the epoch, for example \verb|%^-3s| are milliseconds since the epoch (N can only be 1 digit) & \verb|%Y-%m-%d %H:%M:%OS| \\
 \hline
@@ -379,19 +380,19 @@ Option & Meaning & Default value \\
 \hline
 \verb|-largeTickFreq N| & Every N'th tick will be larger than the others & \verb|10| \\
 \hline
-\verb|-sort SORT| & Sort tracks by time of first event (\verb|-sort time|) or by track name (\verb|-sort name|)~--- see "track sorting" above & \verb|name| \\
+\verb|-sort SORT| & Sort tracks by time of first event (\verb|-sort time|) or by track name (\verb|-sort name|)~--- see ``track sorting'' above & \verb|name| \\
 \hline
-\verb|-expire MILLIS| & Expire activities that do not finish within MILLIS milliseconds~--- see "expiring activities" above & \emph{none (don't expire)} \\
+\verb|-expire MILLIS| & Expire activities that do not finish within MILLIS milliseconds~--- see ``expiring activities'' above & \emph{none (don't expire)} \\
 \hline
-\verb|-phantom COLOR| & Set the phantom color which is used if the first event on a track is "<"~--- see "phantom color" above & \emph{none (no phantom color)} \\
+\verb|-phantom COLOR| & Set the phantom color which is used if the first event on a track is \texttt{<}~--- see ``phantom color'' above & \emph{none (no phantom color)} \\
 \hline
 \verb|-fromTime TIME| & Clip the picture on the left (time in the format of \verb|-tf|, i.e. same as in the input) & \emph{none (don't clip)} \\
 \hline
 \verb|-toTime TIME| & Clip the picture on the right (time in the format of \verb|-tf|, i.e. same as in the input) & \emph{none (don't clip)} \\
 \hline
-\verb|-numTracks N| & Explicitly specify the number of tracks for better performance on very large data (see section "Performance" below) & \emph{none (compute from input)} \\
+\verb|-numTracks N| & Explicitly specify the number of tracks for better performance on very large data (see section ``Performance'' below) & \emph{none (compute from input)} \\
 \hline
-\verb|-colorscheme SCHEME COLORS| & Declare a colorscheme (see "Color schemes" above). Can be used multiple times. Scheme is an arbitrary string, e.g. \verb|pale| or \verb|bright|. COLORS is a space-separated list of colors in SVG or hex, e.g. \verb|'red green 0x0000FF'| & \emph{none} \\
+\verb|-colorscheme SCHEME COLORS| & Declare a colorscheme (see ``Color schemes'' above). Can be used multiple times. Scheme is an arbitrary string, e.g. \verb|pale| or \verb|bright|. COLORS is a space-separated list of colors in SVG or hex, e.g. \verb|'red green 0x0000FF'| & \emph{none} \\
 \hline
 \end{longtable}
 
@@ -472,56 +473,304 @@ Figures \ref{fig:splot-gallery-first}--\ref{fig:splot-gallery-last} show a numbe
 
 While \splot{} is designed to show you the \emph{qualitative} patterns in a program's behavior, \timeplot{} is meant to show \emph{quantitative} patterns. It takes as input a sequence of events in a format similar to that of \splot{} (but richer) and allows you to visualize the quantitative characteristics of that sequence in many different ways~--- e.g. to compare the frequency of different events per time unit, or to look at the distribution of event durations, etc.
 
-The input to \timeplot{} is a sequence of events of the form "event X happened", "durable event X started/finished", "a numeric or discrete variable P took value X". Every event has an \emph{input track}.
+The input to \timeplot{} is a sequence of events of the form ``event X happened'', ``interval event X started/finished'', ``a numeric or discrete variable P took value X''. Every event happens on a particular \emph{input track} and at a particular time. The types of events are specified in section \ref{sec:tplot-input-format}.
 
 The output is several plots vertically stacked on top of each other, with a common time axis. Every plot corresponds to one \emph{output track}. Usually \emph{input tracks} correspond to output tracks 1-to-1, though sometimes the relation is more complex (e.g. when we wish to compare values from several input tracks on one plot, or we wish a single input track to participate in multiple plots). The mapping is described in section \ref{sec:tplot-concepts}. Every output plot is from one of the several available types (e.g. simple dot or line plot, or quantile plot, etc.). The kind of plot to draw on a particular output track is specified by the chart kind mapping, also described in section \ref{sec:tplot-concepts}.
 
+An example result of \timeplot{} is shown on figure \ref{fig:tplot-motivating-example}.
+
+\begin{figure}[p]
+\center
+\includegraphics[width=0.8\textwidth]{pics/tplot/tplot-motivating-example.png}
+\caption{Motivating example for \timeplot{}: The distribution of memcached access latencies from a worker on the same rack (above) and on a different rack (below).}
+\label{fig:tplot-motivating-example}
+\end{figure}
+
 \subsection{Motivation}
+
+Consider the log format described in section \ref{sec:general-usage}~--- the one where tasks consist of a ``fetching data from memcached'' stage and ``computational'' stage, delimited by \verb|Begin|, \verb|GetCommonData|, \verb|End|.
+
+Suppose that we have several racks of servers and just one memcached server. Let us compare how memcached latencies differ when it is accessed by workers from different racks (since cross-rack access requires an extra network packet hop through a switch device, accesing from the same rack should be faster).
+
+memcached is on rack 1. Let us specifically compare performance on machine \verb|UNIT011| and \verb|UNIT051|. So, we should expect access from \verb|UNIT011| to be faster.
+
+The filtered log looks like this:
+\begin{verbatim}
+...
+UNIT011 2010-12-09 01:54:41.853 P3964 Debug GetCommonData 390256d1/49
+UNIT011 2010-12-09 01:54:41.927 P3964  Info Begin 390256d1/51
+UNIT011 2010-12-09 01:54:41.928 P3964 Debug GetCommonData 390256d1/51
+UNIT051 2010-12-09 01:54:42.045 P3832  Info Begin 390256d1/99
+UNIT051 2010-12-09 01:54:42.045 P3164  Info Begin 390256d1/98
+UNIT051 2010-12-09 01:54:42.046 P3164 Debug GetCommonData 390256d1/98
+...
+\end{verbatim}
+
+Let us make this into a trace file for \timeplot{}, which in this case looks very similar to \splot{}:
+\begin{verbatim}
+$ awk '{t=$2 " " $3; p="memcached-" $1 "." $4}
+       /Begin /        {print t " >" p} 
+       /GetCommonData /{print t " <" p}'
+       log.txt > trace.txt
+\end{verbatim}
+
+The trace will look like this:
+\begin{verbatim}
+...
+2010-12-09 01:54:41.853 <memcached-UNIT011.P3964
+2010-12-09 01:54:41.927 >memcached-UNIT011.P3964
+2010-12-09 01:54:41.928 <memcached-UNIT011.P3964
+2010-12-09 01:54:42.045 >memcached-UNIT051.P3832
+2010-12-09 01:54:42.045 >memcached-UNIT051.P3164
+2010-12-09 01:54:42.046 <memcached-UNIT051.P3164
+...
+\end{verbatim}
+
+Here again the ``track names'' correspond to different processes (though in general, as we'll see later, track names have broader meaning in \timeplot{}), \verb|>| means the beginning of an activity and \verb|<| means the end.
+
+Now we'll plot the distribution of durations of memcached access times according to these \verb|>| and \verb|<| events.
+
+\begin{verbatim}
+$ tplot -if trace.txt -o latencies.png
+        -dk 'within[-] duration binf 10 0.001,0.002,0.005,0.01,0.05'
+\end{verbatim}
+
+For now do not concern yourself with the meaning of the \verb|-dk| parameter, it will be explained later. Just concentrate on the input (how easy it is to generate from the logs) and the output (how much it tells about the system). The result is shown on figure \ref{fig:tplot-motivating-example}.
+
+\textbf{Explanation of the output:} The graph above corresponds to access from \verb|UNIT011|, below from \verb|UNIT051|. Both graphs have time on the X axis and latency on the Y axis. Time is cut into 10-second bins represented by a stack of colored bars. Within each stack (see legend and compare to the invocation of \verb|tplot| above):
+\begin{itemize}
+\item Height of the green bar shows the fraction of latencies under 0.001s
+\item Height of the blue bar shows the fraction of latencies in 0.001s--0.002s
+\item Height of the yellow bar shows the fraction of latencies in 0.002s--0.005s
+\item Height of the red bar shows the fraction of latencies in 0.005s--0.01s
+\item Height of the orange bar shows the fraction of latencies in 0.01s--0.05s
+\item Height of the brown bar shows the fraction of latencies above 0.05s
+\end{itemize}
+
+Together these fractions add up to 1.
+
+The graphs differ:
+\begin{itemize}
+\item There are no green bars on the second graph, i.e. access from a different rack is never under 0.001s
+\item The yellow bars are a lot larger on the second graph, i.e. times in 0.002s--0.005s are much more frequent when accessing from a different rack
+\end{itemize}
+
+So, again: given the log, the following commands:
+
+\begin{verbatim}
+$ awk '{t=$2 " " $3; p="memcached-" $1 "." $4}
+       /Begin /        {print t " >" p} 
+       /GetCommonData /{print t " <" p}'
+       log.txt > trace.txt
+$ tplot -if trace.txt -o latencies.png
+        -dk 'within[-] duration binf 10 0.001,0.002,0.005,0.01,0.05'
+\end{verbatim}
+
+\ldots give us figure \ref{fig:tplot-motivating-example} which shows how exactly the distributions of access latencies from different racks differ.
+
+This example illustrated the mode of usage of \timeplot{}, the ease of generating input for it from an arbitrary log and the terseness of its syntax for specifying the kind of graph to be plotted.
 
 \subsection{Concepts}
 \label{sec:tplot-concepts}
 
+This section lists the concepts necessary for precisely understanding the rest of the manual. You can quickly skim over them now just to get a feeling of what they're about, and return to them later when something is unclear.
+
 \begin{description}
-\item[Event] The atomic unit of information in the input trace. It tells can be one of several types: "something has happened" (this is called an \emph{impulse event}), "something has started/finished" (this is called an \emph{edge event}, and the activity delimited by start/finish is called a \emph{long event}), "some parameter had a particular value" etc. The types of events correspond to what is usually found in typical program log entries. Every event happens on a particular \emph{input track}.
-\item[Input track] A named group of events in the input trace. Usually corresponds to a single parameter being measured, e.g. there could be an input track for request execution times named "rtime". Then we would have the input trace consist of events with track "rtime" and numeric type (see different types of events described in section \ref{sec:tplot-input-format}).
-\item[Output track] A named group of events in the output plots. The output track of an event is often equal to its input track, but in the general case is determined from its input track by the process of \emph{track mapping}. All events with the same output track are shown on one output plot.
+\item[Event] The atomic unit of information in the input trace. It can be one of several types: ``something has happened'' (this is called an \emph{impulse event}), ``something has started/finished'' (this is called an \emph{edge event}, and the activity delimited by start/finish is called an \emph{interval event}), ``some parameter had a particular value'' (\emph{measurement event}) etc. The types of events correspond to what is usually found in typical program log entries, so they're very easy to generate from logs. Every event happens on a particular \emph{input track} and at a particular time, for example: \verb|2012-06-04 14:24:05.384 =rtime.mcd1 5.371|, this is a numeric measurement event, here \verb|rtime.mcd1| is the input track name and \verb|2012-06-04 14:24:05.384| is the timestamp.
+\item[Input track] A named group of events in the \emph{input trace}. Usually corresponds to a single parameter being measured, e.g. there could be an input track for request execution times named ``rtime''. Thus, an input track nearly always consists of events of the same type. Here we would have the input trace consist of events with track ``rtime'' and numeric type (see different types of events described in section \ref{sec:tplot-input-format}).
+\item[Output track] A named group of events in the \emph{output plots}. The output track of an event is often equal to its input track, but in the general case is determined from its input track by the process of \emph{track mapping} described in section \ref{sec:tplot-track-mapping}. All events with the same output track are shown on the same output plot.
 \item[Output plot] A single plot in the resulting picture. The picture consists of several output plots vertically stacked together with a common time axis. A single output plot is based on values from a single output track.
-\item[Track mapping] The process by which events from different input tracks are mapped onto output tracks, e.g. to make events from several input tracks participate in a single output plot, or to make events from a single input track participate in several different output plots. It is described in section \ref{sec:tplot-track-mapping}.
-\item[Plot kind] The type of an output plot: e.g. dot plot, line plot, quantile plot etc. There are also a couple of "meta" plot kinds: duration plots and 'within'-plots. Plot kinds usually have parameters, e.g. the percentiles of interest on a quantile plot. Plot kinds are described in section \ref{sec:tplot-plot-kinds}.
-\item[Plot kind mapping] The process by which we determine what plot kind to use for visualizing a particular output track. It is based upon matching regexes against the input tracks of events mapped to this output track. The process is described in detail in section \ref{sec:tplot-track-mapping}.
+\item[Track mapping] The process by which events from different input tracks are mapped onto output tracks, e.g. to make events from several input tracks participate in a single output plot, or to make events from a single input track participate in several different output plots. It is controlled by \verb|+k|, \verb|-k|, \verb|+dk|, \verb|-dk| options and by the \verb|within[SEP]| plot type. The process is described in section \ref{sec:tplot-track-mapping}.
+\item[Plot kind] The type of an output plot: e.g. dot plot, line plot, quantile plot etc. There are also a couple of ``meta'' plot kinds: duration plots and ``within''-plots. Plot kinds usually have parameters, e.g. the percentiles of interest on a quantile plot. Plot kinds are described in section \ref{sec:tplot-plot-kinds}.
+\item[Plot kind mapping] The process by which we determine what plot kind to use for visualizing a particular output track. It is based upon matching regexes against the input tracks of events mapped to this output track. It happens together with the track mapping and is described in detail in section \ref{sec:tplot-track-mapping}.
 \end{description}
+
+To put it together: Input events belong to input tracks and get mapped onto output tracks via track mapping. Every output track gives rise to an output plot, its kind determined by plot kind mapping. Output plots are stacked vertically with a common time axis.
 
 The following concepts are important for understanding the different event types and some plots produced from them:
 \begin{description}
-\item[Counter] A logical time-varying variable associated with an \emph{input track} which can be bumped by start/finish (\emph{edge}) events. E.g. if your input trace includes events like "started/finished executing a request", then there's a logical counter that can be used to plot the number of concurrently executing requests.
-\item[Impulse event] An input event without parameters that just denotes that something has happened. E.g. if you're interested in the number of completed requests per second, you can have an input trace with impulse events on the track "completed-requests" and draw an "event count" plot of that.
-\item[Edge event (counter bump)] An input event without parameters that denotes that some activity (long event) has started or finished. It can at the same time be perceived as a bump of +1 or -1 to the logical counter associated with this event's input track.
-\item[Long event] The logical activity delimited by a start and finish event. More precisely, the period during which a \emph{counter} is greater than zero. The duration of long events can be measured (producing a bunch of numeric events) and you can draw all kinds of plots about these numeric events, e.g. if your input trace has "request started/request finished" events but doesn't have numeric events about request durations, you can still draw a quantile plot of request durations.
+\item[Measurement event] An event that denotes that a particular parameter was measured to have a particular value (e.g.: the amount of free memory was measured to be 2.5Gb), or that something happened with a particular value of a parameter. E.g.: an I/O write request \emph{for 65536 bytes} arrived (e.g. \verb|... =writeBytes 65536|)~--- a numeric measurement; or an I/O request \emph{of type ``write''} has arrived (e.g. \verb|... =requestType `WRITE|)~--- a discrete measurement.
+\item[Impulse event] An input event without parameters that just denotes that something has happened, determined solely by its input track. E.g. if you're interested in the number of completed requests per second (e.g. \verb|... !requestCompleted|), you can have an input trace with impulse events on the track \verb|requestCompleted| and draw an ``event count'' plot of that.
+\item[Edge event (counter bump)] An input event without parameters that denotes that some activity (interval event) has \emph{started} or \emph{finished}. It can at the same time be thought of as a bump of +1 (\verb|>request|) or -1 (\verb|<request|) of the logical counter associated with this event's input track.
+\item[Counter] A logical time-varying variable associated with an \emph{input track} which can be bumped by start/finish (\emph{edge}) events. E.g. if your input trace includes events like ``started/finished executing a request'' (e.g. \verb|... >request|, \verb|<request|), then \timeplot{} will keep a logical counter that can be used to plot the number of concurrently executing requests.
+\item[Interval event] The logical activity delimited by a start and finish event. More precisely, the period during which a \emph{counter} is greater than zero. The duration of interval events can be measured (producing a bunch of numeric measurement events) and you can draw all kinds of plots about these numeric events, e.g. if your input trace has ``request started/request finished'' events but doesn't have numeric events about request durations, you can still draw a quantile plot of request durations. This is called a \emph{duration plot}.
+\item[Duration plot] A meta-plot which means ``plot something else, using as input the durations of interval events formed by edge events of this track'' (e.g. \verb|duration quantile 1 0.5,0.75,0.95|).
 \end{description}
-
-\subsubsection{Track mapping}
-\label{sec:tplot-track-mapping}
-
-
-\subsubsection{}
-Counter
-Impulse and interval events
-Discrete and continuous variable
-Duration plots
-
 
 \subsection{Input format}
 \label{sec:tplot-input-format}
 
+The general format of a \timeplot{} event is as follows:
+\begin{verbatim}
+TIMESTAMP [!<>=@]TRACK [VALUE]
+\end{verbatim}
+
+For example:
+\begin{verbatim}
+2012-06-04 14:24:13.389 !requestCompleted
+2012-06-04 14:24:13.389 !userLogIn Joe
+2012-06-04 14:24:13.389 >request.mcd1
+2012-06-04 14:24:13.389 <request.mcd1
+2012-06-04 14:24:13.389 =rtime 37.2
+2012-06-04 14:24:13.389 =cache `MISS
+2012-06-04 14:24:13.389 @phase blue
+\end{verbatim}
+
+The table below explains the meaning of all the event types.
+
+\begin{tabular}{|l|p{200px}|l|}
+\hline
+Syntax & Meaning & Example \\
+\hline
+\verb|!TRACK| & Impulse event. & \verb|!requestCompleted| \\
+\hline
+\verb|!TRACK TEXT| & Impulse event with a text label. & \verb|!userLogIn Joe| \\
+\hline
+\verb|>TRACK| & Interval event start / counter bump +1. & \verb|>requestCompleted| \\
+\hline
+\verb|<TRACK| & Interval event finish / counter bump -1. & \verb|<requestCompleted| \\
+\hline
+\verb|=TRACK NUMBER| & Numeric measurement event. & \verb|=rtime 37.2| \\
+\hline
+\verb|=TRACK `TEXT| & Discrete measurement event. & \verb|=cache `MISS| \\
+\hline
+\verb|@TRACK COLOR| & Colored interval event start. & \verb|@phase blue| \\
+\hline
+\end{tabular}
+
 \subsection{Simple example}
+This section considers in detail the simplest and most intuitive possible example: a dot plot of a single time-varying value.
+
+Assume that we have a program that sometimes does requests to a database server ("Arcadia"~--- this is a real-life example from Yandex, and Arcadia is the codename of its core search engine) and logs their durations:
+
+\begin{verbatim}
+...
+2010-05-11 18:25:05.435 Arcadia request took 820 ms
+...
+\end{verbatim}
+
+We're interested in looking at the structure of these durations and its change over time. A simple dot plot is a perfect starting point.
+
+First, generate the trace: for each line of interest in the log, we need to emit a corresponding \emph{numeric measurement} event into the trace (see reference on event types in section \ref{sec:tplot-concepts} and on their textual format in section \ref{sec:tplot-input-format}).
+
+The trace should look like this:
+\begin{verbatim}
+...
+2010-05-11 18:25:05.435 =arc 820
+...
+\end{verbatim}
+
+This is trivial to achieve with an awk one-liner:
+\begin{verbatim}
+$ awk '/Arcadia req/{print $1 " " $2 " =arc " $6}' log.txt > trace.txt
+\end{verbatim}
+
+Now we can generate the plot: we need to tell \timeplot{} the input and output filenames and what kind of chart to draw.
+\begin{verbatim}
+$ tplot -if trace.txt -o arc.png -dk dots
+\end{verbatim}
+
+The parameter \verb|-dk| means ``default chart kind'': just draw everything using this kind of chart (\verb|dots|). So, the track mapping process is involved here in the most trivial form (see section \ref{sec:tplot-track-mapping} for less trivial forms).
+
+And we get figure \ref{fig:tplot-simple-example}.
+
+\begin{figure}[h]
+\center
+\includegraphics[width=0.8\textwidth]{pics/tplot/dots.png}
+\caption{Simple example of \timeplot{}~--- a dot plot of a single variable}
+\label{fig:tplot-simple-example}
+\end{figure}
+
+We see the following features:
+\begin{itemize}
+\item The times clearly split into higher and lower values, obviously corresponding to cache hits and cache misses within Arcadia.
+\item At some point the distribution suddenly changes to the worse and requests start taking more time. I do not remember what was the reason for that, but there certainly was one.
+\item There's a lot of overplotting on the picture; it's difficult to understand the distribution more precisely. To do that, we'll need quantile plots or bin plots (see section \ref{sec:tplot-chart-kinds}). An alternative is to use semi-transparent dots (e.g. \verb|-dk 'dots 0.3'| would give 30\% opacity). There exist other ways of coping with overplotting (just google \emph{overplotting}), but they're not currently implemented in \timeplot{}.
+\end{itemize}
+
+From this simple example you can go several ways:
+\begin{itemize}
+\item Draw multiple tracks, displaying a single input data point on multiple charts or vice versa, displaying data points from multiple tracks on a single chart (e.g. a color-coded dot plot)~--- see section \ref{sec:tplot-track-mapping}.
+\item Learn to use the more complex event types (e.g. discrete, impulse, edge and interval events) and to draw other types of charts on them~--- re-read section \ref{sec:tplot-concepts} and continue to section \ref{sec:tplot-chart-kinds}.
+\item Draw more interesting types of charts~--- just go to section \ref{sec:tplot-chart-kinds}.
+\item Take a look at the example charts and choose something that looks interesting or applicable to your case~--- goto section \ref{sec:tplot-gallery}.
+\end{itemize}
 
 \subsection{Chart kinds}
+\label{sec:tplot-chart-kinds}.
+This section describes all the chart kinds supported by \timeplot{} and gives recommendations on their usage.
+
+Remember that the input data for each chart is events with a common \emph{output track} (see section \ref{sec:tplot-track-mapping}), i.e. possibly events from multiple input tracks.
+
+\subsubsection{Special kinds}
+\textbf{Empty chart~--- \texttt{none}}. This means ``do not draw this output track at all''. This is useful if you have prepared a trace from a large log file and invoke \timeplot{} several times on it, omitting some tracks altogether.
+
+\textbf{Chart over interval durations~--- \texttt{duration XXX}}. This means ``draw chart of kind XXX over the numeric durations of interval events delimited by start/finish events on this track'' (see section \ref{sec:tplot-concepts}). Durations are measured in seconds.
+
+\textbf{Chart for M:1 track mapping~--- \texttt{within}}. This is not a chart kind proper, it's a means for displaying values from multiple input tracks on a single chart. See section \ref{sec:tplot-track-mapping}.
+
+\subsubsection{Kinds for numeric data}
+\textbf{\texttt{quantile}}
+\textbf{\texttt{binf}}
+\textbf{\texttt{binh}}
+\textbf{\texttt{lines}}
+\textbf{\texttt{dots}}
+\textbf{\texttt{sum}}
+\textbf{\texttt{cumsum}}
+
+\subsubsection{Kinds for discrete data}
+\textbf{\texttt{event}}
+\textbf{\texttt{acount}}
+\textbf{\texttt{apercent}}
+\textbf{\texttt{afreq}}
+\textbf{\texttt{freq}}
+
+\subsection{Track and plot kind mapping}
+\label{sec:tplot-track-mapping}
+The process of mapping input events to output tracks consists of several steps. We'll understand it by describing the mapping algorithm and demonstrating it on a few simple examples involving the different parts of the algorithm.
+
+Here's what happens to every input event (assume the event's input track is TRACK):
+\begin{itemize}
+\item Compare it to all the patterns among \verb|+k PATTERN '+SUF TYPE'|. For those that match:
+\subitem If \verb|TYPE| is \verb|within[#] SUBTYPE|, and \verb|TRACK| is of the form \verb|BASE#SUB|, place the event onto output track \verb|BASE.SUF|.
+\subitem Otherwise, place the event onto output track \verb|TRACK.SUF|.
+\item Do the same for \verb|+dk '+SUF TYPE'|.
+\item Do the same for the \emph{first} matching pattern among \verb|-k PATTERN '+SUF TYPE'|.
+\item If no \verb|-k| patterns matched, do the same for \verb|-dk|.
+\end{itemize}
+
+To understand this, compare it to the simple special cases shown below.
+
+\textbf{Simplest case, single input track and single plot type:} 1 input track, 1 plot kind mapping~--- the ``default'' mapping specified by \verb|-dk K|. This sole input track should be drawn with plot kind K (e.g. \verb|dots|). We'll have 1 dot plot in the output, showing events from the sole input track.
+
+\textbf{Multiple input tracks, single plot type:} Several input tracks, 1 default plot kind mapping. We get several plots of the same type (e.g. several dot plots) vertically stacked with a common time axis. \textbf{For example:} if we have several memcached servers and we measure the durations of requests to them, we can have input tracks named \verb|rtime.mcd1|, \verb|rtime.mcd2| etc.
+
+\textbf{Multiple input tracks with different plot types:} We wish to draw some input tracks with one plot type and some with another. We specify several regex/type mappings using \verb|-k PATTERN TYPE|. 
+
+E.g. if we also have an input track \verb|cache| with discrete measurement events \verb|`HIT| and \verb|`MISS| and we wish to draw their rate, we can use \verb|-k rtime dots| \verb|-k cache 'freq 1'|. Then the output will have vertically stacked dot plots for tracks \verb|rtime.mcd1|, \verb|rtime.mcd2| etc, and a frequency plot for the track \verb|cache|. 
+
+Input tracks that don't match any of the \verb|-k| patterns get drawn using the default plot type specified by \verb|-dk|.
+
+\textbf{Single input track drawn with several different plot types:} We wish to make events from a single input track participate in multiple output plots, e.g. draw both the absolute and relative frequency of a track of discrete measurement events. Then we use \verb|+k PATTERN '+SUF TYPE'|. This means ``for tracks that match \verb|PATTERN|, append \verb|.SUF| to their name and draw a plot of type \verb|TYPE|''. 
+
+For example: \verb|+k cache '+f freq 1'| \verb|+k cache '+h hist 1'| will produce two output tracks: \verb|cache.f| drawn with plot type \verb|freq 1| and \verb|cache.h| drawn with plot type \verb|hist 1|. Or, if (for some reason) you decide to draw both a dot and line plot of request times, you can try \verb|+k rtime '+dot dots'| \verb|+k rtime '+line lines'| and get tracks \verb|rtime.mcd1.dot|, \verb|rtime.mcd2.dot| \ldots drawn with \verb|dots| and \verb|rtime.mcd1.line|\ldots drawn with \verb|lines|. 
+
+There's also \verb|+dk '+SUF TYPE'| with similar semantics. 
+
+The suffixes are needed because otherwise the names of output tracks for the different plot types specified by \verb|+k| for a single input track would be identical, i.e. it would be the same output track, \timeplot{} cannot have two identically named output tracks. If the suffix is not specified (e.g. \verb|+k rtime dots|) it is assumed to be empty.
+
+\textbf{Events from several similarly named input tracks drawn on a single plot:} Assume that you wish to draw dot plots of request times to different memcached servers not on several vertically stacked plots, but on a single dot plot, with different servers color-coded. Assume again that the input tracks are named \verb|rtime.SERVER|. 
+
+Then you should use the \verb|within[SEP]| plot meta-type: \verb|-k rtime 'within[.] dots'|. This means: map input tracks to output tracks by dropping everything after the separator \verb|SEP|, in this case after \verb|.|, and we get a single output track \verb|rtime| to which go all the events from \verb|rtime.mcd1|, \verb|rtime.mcd2| etc. The plot type \verb|dots| will then take care of color-coding the different input tracks within a single output track. Other plot types deal with this situation in a sensible manner too, see section \ref{sec:tplot-chart-kinds}.
 
 \subsection{Advanced features}
+% TODO
 
 \subsection{Option reference}
+% TODO
 
 \subsection{Gallery}
+% TODO
 
 \section{Acknowledgements}
 
