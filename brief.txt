@@ -1,133 +1,132 @@
-Timeplotters: two tools for visualizing logs and temporal data                                                        |
-                                                                                                                      |
-=== Introduction ===                                                                                                  |
-    timeplot draws xxx                                                                                                |
-    splot draws yyy                                                                                                   |
-                                                                                                                      |
-Goal is to aid exploration => generatable input, fast                                                                 |
-                                                                                                                      |
-Example images:                                                                                                       |
-[IMG]                                                                                                                 |
-[IMG]                                                                                                                 |
-                                                                                                                      |
-Input in strict format.                                                                                               |
-Pattern of usage:                                                                                                     |
-[IMG]                                                                                                                 |
-                                                                                                                      |
-In shell:                                                                                                             |
-    awk; splot                                                                                                        |
-                                                                                                                      |
-Let's look at an example without detail.                                                                              |
-                                                                                                                      |
-Computational cluster using splot.                                                                                    |
-Log looks like this.                                                                                                  |
-awk ...; splot ...                                                                                                    |
-You see it's just 2 commands.                                                                                         |
-It's interesting, see section X.                                                                                      |
-                                                                                                                      |
-tplot is also used like this.                                                                                         |
-                                                                                                                      |
-=== tplot ===                                                                                                         |
-Show temporal data, spot patterns.                                                                                    |
-                                                                                                                      |
-Input: happened, started, value. See section X.                                                                       |
-Output: stack of plots; 1-1, but can be more complex. See section Y.                                                  |
-                                                                                                                      |
-Example:                                                                                                              |
-[IMG]                                                                                                                 |
-                                                                                                                      |
-= Simple example =                                                                                                    |
-Dot plot.                                                                                                             |
-Program accesses db server.                                                                                           |
-Log looks like this:                                                                                                  |
-   ... duration is 100 ms                                                                                             |
-We want to look at durations.                                                                                         |
-                                                                                                                      |
-Generate trace:                                                                                                       |
-  ...                                                                                                                 |
-Use awk:                                                                                                              |
-  ...                                                                                                                 |
-                                                                                                                      |
-Generate output:                                                                                                      |
-  ...                                                                                                                 |
-                                                                                                                      |
-Here, -dk means default kind. See section X.                                                                          |
-                                                                                                                      |
-We get this:                                                                                                          |
-[IMG]                                                                                                                 |
-                                                                                                                      |
-We see the following anomalies:                                                                                       |
-  * ...                                                                                                               |
-                                                                                                                      |
-= Where to go next =                                                                                                  |
-  * complex example, track mapping, event types, chart types, gallery                                                 |
-                                                                                                                      |
-== Motivation: complex example ==                                                                                     |
-Here we'll look at an interesting example but not explain anything.                                                   |
-Look at that same log with memcached access.                                                                          |
-Suppose we have N racks and 1 memcached. Compare latencies.                                                           |
-Log looks like this:                                                                                                  |
-  ...                                                                                                                 |
-Let's make a trace:                                                                                                   |
-  ...                                                                                                                 |
-We get:                                                                                                               |
-  ...                                                                                                                 |
-Track names are different processes.                                                                                  |
-Now plot:                                                                                                             |
-  ...                                                                                                                 |
-Nevermind the command, look how cool it is.                                                                           |
-[IMG]                                                                                                                 |
-                                                                                                                      |
-Explanation of output:                                                                                                |
-  ...                                                                                                                 |
-                                                                                                                      |
-Graphs differ:                                                                                                        |
-  ...                                                                                                                 |
-                                                                                                                      |
-To reiterate: given the log, commands                                                                                 |
- ...                                                                                                                  |
-give a graph.                                                                                                         |
-                                                                                                                      |
-This showed ease of use and power of tplot.                                                                           |
-                                                                                                                      |
-== Concepts ==                                                                                                        |
-Necessary for understanding the rest. Skim and return later.                                                          |
-Event, Input track, Output track, Output plot, Track mapping, Plot kind, Plot kind mapping,                           |
-Together: input transformed to output, output stacked.                                                                |
-                                                                                                                      |
-Event types: measurement, impulse, edge, counter, interval, duration plot                                             |
-Pls revisit section Motivation now.                                                                                   |
-                                                                                                                      |
-== Input format ==                                                                                                    |
-Examples:                                                                                                             |
-  ..                                                                                                                  |
-Syntax / meaning table:                                                                                               |
-  ..                                                                                                                  |
-                                                                                                                      |
-== Chart kinds ==                                                                                                     |
-= Special kinds =                                                                                                     |
-Empty, Duration, Within                                                                                               |
-= Numeric kinds =                                                                                                     |
-Dots, lines, sum, cumsum, quantile, binf/binh                                                                         |
-= Kinds for counters =                                                                                                |
-Event, acount, apercent, afreq                                                                                        |
-= Kinds for discrete data =                                                                                           |
-freq, hist                                                                                                            |
-                                                                                                                      |
-== Track and plot kind mapping ==                                                                                     |
-Algorithm has several steps. We'll show the full algorithm and then explain.                                          |
-General algorithm:                                                                                                    |
-  ...                                                                                                                 |
-Simplest case: 1-1                                                                                                    |
-Multiple inputs, 1 plot type                                                                                          |
-Multiple inputs, different plot types                                                                                 |
-Single input, several plot types                                                                                      |
-Multiple inputs, single plot                                                                                          |
-                                                                                                                      |
-== Option reference ==                                                                                                |
-...                                                                                                                   |
-                                                                                                                      |
-== Gallery ==                                                                                                         |
-                                                                                                                      |
-=== splot ===                                                                                                         |
-                                                                                                                      |
+Timeplotters: two tools for visualizing logs and temporal data                                                         
+
+=== Introduction ===
+    timeplot draws xxx
+    splot draws yyy
+
+Goal is to aid exploration => generatable input, fast
+
+Example images: [IMG] [IMG]
+
+Input in strict format.
+Pattern of usage: [IMG]
+
+In shell: awk; splot
+
+Let's look at an example without detail.
+
+Computational cluster using splot.
+Log looks like this.
+awk ...; splot ...
+You see it's just 2 commands.
+It's interesting, see section X.
+
+tplot is also used like this.
+
+=== tplot ===
+Show temporal data, spot patterns.
+
+Input: happened, started, value. See section X.
+Output: stack of plots; 1-1, but can be more complex. See section Y.
+
+Example: [IMG]
+
+= Simple example =
+Dot plot.
+Program accesses db server.
+Log looks like this:
+   ... duration is 100 ms
+We want to look at durations.
+
+Generate trace:
+  ...
+Use awk:
+  ...
+
+Generate output:
+  ...
+
+Here, -dk means default kind. See section X.
+
+We get this:
+[IMG]
+
+We see the following anomalies:
+  * ...
+
+= Where to go next =
+  * complex example, track mapping, event types, chart types, gallery
+
+!!! TODO !!!
+= Training example =
+!!! TODO !!!
+
+== Motivation: complex example ==
+Here we'll look at an interesting example but not explain anything.
+Look at that same log with memcached access.
+Suppose we have N racks and 1 memcached. Compare latencies.
+Log looks like this:
+  ...
+Let's make a trace:
+  ...
+We get:
+  ...
+Track names are different processes.
+Now plot:
+  ...
+Nevermind the command, look how cool it is.
+[IMG]
+
+Explanation of output:
+  ...
+
+Graphs differ:
+  ...
+
+To reiterate: given the log, commands
+ ...
+give a graph.
+
+This showed ease of use and power of tplot.
+
+== Concepts ==
+Necessary for understanding the rest. Skim and return later.
+Event, Input track, Output track, Output plot, Track mapping, Plot kind, Plot kind mapping,
+Together: input transformed to output, output stacked.
+
+Event types: measurement, impulse, edge, counter, interval, duration plot
+Pls revisit section Motivation now.
+
+== Input format ==
+Examples:
+  ..
+Syntax / meaning table:
+  ..
+
+== Chart kinds ==
+= Special kinds =
+Empty, Duration, Within
+= Numeric kinds =
+Dots, lines, sum, cumsum, quantile, binf/binh
+= Kinds for counters =
+Event, acount, apercent, afreq
+= Kinds for discrete data =
+freq, hist
+
+== Track and plot kind mapping ==
+Algorithm has several steps. We'll show the full algorithm and then explain.
+General algorithm:
+  ...
+Simplest case: 1-1
+Multiple inputs, 1 plot type
+Multiple inputs, different plot types
+Single input, several plot types
+Multiple inputs, single plot
+
+== Option reference ==
+...
+
+== Gallery ==
+
+=== splot ===
+                                                                                                               

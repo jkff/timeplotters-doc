@@ -8,6 +8,9 @@
 \usepackage{longtable}
 \usepackage[colorlinks=true]{hyperref}
 \usepackage[all]{xy}
+\usepackage{nameref}
+\usepackage{fullpage}
+\usepackage{wrapfig}
 
 \begin{document}
 
@@ -23,43 +26,52 @@ two tools for visualizing logs and temporal data}
 \def\timeplot{\textbf{timeplot}}
 \def\awk{\textbf{awk}}
 
+% TODO Make image top-aligned with text.
+\newcommand{\inlinethumbnail}[1]{\includegraphics[width=0.12\textwidth]{#1}}
 
 \setlength{\parskip}{2mm plus1mm minus1mm}
 
+\pagebreak
 \section{Introduction}
 
 \splot{} and \timeplot{} are tools for visualizing temporal data, especially useful for visualizing data from program logs.
 
-\begin{itemize}
-\item \timeplot{} draws quantitative graphs about several streams of events happening over time, e.g. you can use it to compare the distribution of database access latencies from two machines; or to draw the number of requests being concurrently processed by each server at each moment, or both of these at the same time.
-\item \splot{} draws a single Gantt-like chart with a birds-eye view of the activity of a number of concurrent processes, each of which may be in one of several different states at each moment (e.g. processing one of several jobs, or being in a particular stage of processing). This allows to see peculiar system-level behavior patterns and usually allows to instantly isolate system-level performance bottlenecks which very often show themselves as distinct visual patterns. See section \ref{sec:splot-motivation} for a very characteristic example of what non-trivial aspects of a program's behavior \splot{} can show.
-\end{itemize}
+You can get them and see the installation instructions at \url{http://jkff.info/software/timeplotters}. Both tools are heavily battle-tested and evolved in response to concrete visualization requirements at a large-scale cluster computing project which the author was part of, though the tools are in no way bound to this particular domain.
 
-The main design goal is to make it possible to use the tools for exploratory analysis and visually answer most questions about your real-world logs with shell one-liners, without modifying the original program. This implies several characteristics:
+\begin{wrapfigure}[4]{r}{120pt}
+\vspace{-25pt}
+\center
+\includegraphics[height=60pt]{pics/tplot/tplot-motivating-example.png}
+\end{wrapfigure}
+  
+\timeplot{} draws quantitative graphs about several streams of events happening over time, e.g. you can use it to compare the distribution of database access latencies from two machines; to draw the number of requests being concurrently processed by each server at each moment, etc.
+
+\begin{wrapfigure}[7]{r}{120pt}
+\vspace{-5pt}
+\center
+\includegraphics[height=60pt]{pics/splot/splot-main-example.png}
+\end{wrapfigure}
+\splot{} draws a single Gantt-like chart with a birds-eye view of the activity of a number of concurrent processes, color-coding the state of each process at each moment (e.g. processing one of several jobs, or being in a particular stage of processing). This allows to see peculiar system-level behavior patterns and usually allows to instantly isolate system-level performance bottlenecks which very often show themselves as distinct visual patterns. Section \nameref{sec:splot-motivation} gives an example of what non-trivial aspects of a program's behavior \splot{} can show.
+
+\textbf{These characteristics} make the tools useful for exploratory analysis:
 
 \begin{itemize}
-\item Input is trivial to generate from raw logs by usual text processing tools such as awk or perl
-\item The same input can be used to generate different graphs
-\item Fast enough to draw many millions of events in tens of seconds, unlimited input
+\item \textbf{Input is trivial to generate} from raw logs by usual text processing tools such as awk or perl
+\item You can generate \textbf{different plots from the same input}
+\item Fast enough to draw \textbf{many millions of events} in tens of seconds, potentially unlimited input size
+\item Tools are invoked by \textbf{one-liners}
 \end{itemize} 
 
-A couple of example images are shown on figures \ref{fig:tplot-intro-example} and \ref{fig:splot-intro-example}.
-% TODO Example images
-% TODO Fit those images on THIS page
-
-\label{sec:general-usage}
 Both \timeplot{} and \splot{} accept input in a strictly specified format, not arbitrary logs. A file in this format is called \emph{trace}. However, this format is designed to be trivial to generate from log files, e.g. using text processing tools such as awk, sed or perl. I use \awk{}, it shines at one-liners (google ``awk one-liners'').
 
-The general pattern of usage is displayed on figure \ref{fig:general-usage}.
+The general pattern of usage is displayed on figure \ref{fig:general-usage}: you use an awk one-liner to generate the \emph{trace} and invoke the tool on it.
 
 \begin{figure}[t]
 \center
-\includegraphics[width=\textwidth]{general-usage.pdf}
+\includegraphics[width=0.6\textwidth]{general-usage.pdf}
 \caption{The general pattern of usage of both \timeplot{} and \splot{}.}
 \label{fig:general-usage}
 \end{figure}
-
-This is how it looks in the shell: you use an awk one-liner to generate the \emph{trace} and invoke the tool on it.
 
 \begin{verbatim}
 $ awk '/some log entry/{emit an event into trace} \
@@ -68,21 +80,18 @@ $ awk '/some log entry/{emit an event into trace} \
 $ splot -if trace.txt -o picture.png ..options..
 \end{verbatim}
 
-This is usually easy to type right in the shell.
-
 \textbf{Let us look at a real-life example} without considering it in too much detail. Use it only for the purpose of understanding the general pattern of usage.
 \pagebreak
+
+% TODO Maybe use memcached example here instead?
 
 In this example, we're drawing the activity of a computational cluster using \splot{}. There's a bunch of worker processes which process tasks from a shared queue. Every task has two stages: 1) fetch data from memcached and 2) run computations. \textbf{Here we'll just show how to run the tool, and not explain what the parameters or even the result mean.}
 
 The log entries look like this:
 
-\begin{tabular}{|l|l|l|l|l|l|}
-\hline
+\begin{tabular}{llllll}
 \emph{Machine} & \emph{Date/time} & \emph{Process ID} & \emph{Level} & \emph{Operation} & \emph{Task ID} \\
-\hline
 \footnotesize{\texttt{UNIT011}} & \footnotesize{\texttt{2010-12-09 01:54:41.853}} & \footnotesize{\texttt{P3964}} & \footnotesize{\texttt{Debug}} & \footnotesize{\texttt{GetCommonData}} & \footnotesize{\texttt{390256d1/49}} \\
-\hline
 \end{tabular}
 
 Operation can be one of \verb|Begin| (starting a task), \verb|GetCommonData| (finished getting task data from database, starting computations), \verb|End| (computations for a task finished).
@@ -92,42 +101,40 @@ $ awk '{time=$2 " " $3; core=$1 " " $4} \
        /Begin /       {print time " >" core " blue"} \
        /GetCommonData/{print time " >" core " orange"} \
        /End /         {print time " <" core}' log.txt > trace.txt
-
 $ splot -if trace.txt -o splot.png -bh 1 -w 1400 -h 800 -expire 10000
 \end{verbatim}
 
-{\centering \includegraphics[width=\textwidth]{pics/splot/splot-main-example.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/splot/splot-main-example.png}}
 
 You can see that it took just 2 commands to produce a picture.
 
-The picture is actually very interesting and highlights many performance problems in the original program. The curious reader is advised to look at section \ref{sec:splot-motivation} where we discuss this case in detail.
-
-The other tool, \timeplot{}, is used in the same manner: a one-liner to generate the input trace, a one-liner to draw it.
+The picture is actually very interesting and highlights many performance problems in the original program. The curious reader is advised to look at section \nameref{sec:splot-motivation} where we discuss this case in detail.
 
 Now let's consider the tools in detail.
 
 \pagebreak
 \section{\timeplot{}~--- drawing quantitative plots from event streams}
+\label{sec:tplot-intro}
 
-\timeplot{} allows you to visualize temporal data in different ways, with the intention to help you spot patterns. It takes as input a sequence of events in a fixed format (there are several types of events), and draws the quantitative characteristics of that sequence in many different ways~--- e.g. you can compare the frequency of different types of events per time unit, or to look at the distribution of event durations, etc.
+\timeplot{} allows you to visualize temporal data in different ways, with the intention to help you spot patterns. It takes as input a sequence of events in a fixed format (there are several types of events), and draws the quantitative characteristics of that sequence in many different ways~--- e.g. you can \textbf{compare the frequency} of different types of events per time unit, or to look at the distribution of \textbf{event durations}, etc.
 
-The input to \timeplot{} is a sequence of events of the form ``event X happened'', ``interval event X started/finished'', ``a numeric or discrete variable P took value X''. Every event happens on a particular \emph{input track} and at a particular time. The types of events are specified in section \ref{sec:tplot-input-format}. Different types of events can be used with different types of visualizations.
+\textbf{The input} to \timeplot{} is a sequence of events of the form ``event X happened'', ``interval event X started/finished'', ``a numeric or discrete variable P took value X''. Every event happens on a particular \emph{input track} and at a particular time. The types of events are specified in section \nameref{sec:tplot-input-format}. Different types of events can be used with different types of visualizations.
 
-The output is a vertical stack of plots with a common time axis. Each plot corresponds to one \emph{output track}. Usually \emph{input tracks} correspond to output tracks 1-to-1, but sometimes the relation is more complex (multiple tracks on 1 plot, or 1 track on multiple plots)~--- see \ref{sec:tplot-concepts}. Every output plot is one of several types (e.g. simple dot plot, line plot, quantile plot, etc.). The kind of plot to draw on a particular output track is specified by the \emph{chart kind mapping}, also described in section \ref{sec:tplot-concepts}.
+\textbf{The output} is a vertical stack of plots with a common time axis. Each plot corresponds to one \emph{output track}. Usually \emph{input tracks} correspond to output tracks 1-to-1, but sometimes the relation is more complex (multiple tracks on 1 plot, or 1 track on multiple plots)~--- see \nameref{sec:tplot-concepts}. Every output plot is one of several types (e.g. simple dot plot, line plot, quantile plot, etc.). The kind of plot to draw on a particular output track is specified by the \emph{plot kind mapping}, also described in section \nameref{sec:tplot-concepts}.
 
 An example result of \timeplot{} is shown on figure \ref{fig:tplot-example}.
 
 \begin{figure}[h]
 \center
 \includegraphics[width=0.6\textwidth]{pics/tplot/tplot-motivating-example.png}
-\caption{\timeplot{} example: distribution of memcached access latencies from the same rack and from a different rack.}
+\caption{\timeplot{} example: distribution of memcached access latencies from the same rack and from a different rack. Built from a log that had lines about starts and completions of requests to memcached.}
 \label{fig:tplot-example}
 \end{figure}
 
 \pagebreak
 \subsection{Simple example}
 \label{sec:tplot-simple-example}
-This section considers in detail the simplest and most intuitive possible example: a dot plot of a single time-varying value.
+This section considers in detail the simplest and most intuitive example possible: a dot plot of a single time-varying value.
 
 Assume that we have a program that sometimes does requests to a database server (``Arcadia''~--- this is a real-life example from Yandex, and Arcadia is the codename of its core search engine) and logs their durations:
 
@@ -139,7 +146,7 @@ Assume that we have a program that sometimes does requests to a database server 
 
 We're interested in looking at the structure of these durations and its change over time. A simple dot plot is a perfect starting point.
 
-First, generate the trace: for each line of interest in the log, we need to emit a corresponding \emph{numeric measurement} event into the trace (see reference on event types in section \ref{sec:tplot-concepts} and on their textual format in section \ref{sec:tplot-input-format}).
+First, \textbf{generate the trace}: for each line of interest in the log, we need to emit a corresponding \emph{numeric measurement} event into the trace (see reference on event types in section \nameref{sec:tplot-concepts} and on their textual format in section \nameref{sec:tplot-input-format}).
 
 The trace should look like this:
 \begin{verbatim}
@@ -153,14 +160,19 @@ This is trivial to achieve with an awk one-liner:
 $ awk '/Arcadia req/{print $1 " " $2 " =arc " $6}' log.txt > trace.txt
 \end{verbatim}
 
-Now we can generate the plot: we need to tell \timeplot{} the input and output filenames and what kind of chart to draw.
+Now we can \textbf{generate the plot}: we need to tell \timeplot{} the input and output filenames and what kind of chart to draw.
 \begin{verbatim}
 $ tplot -if trace.txt -o arc.png -dk dots
 \end{verbatim}
 
-The parameter \verb|-dk| means ``default chart kind'': just draw everything using this kind of chart (\verb|dots|). So, the track mapping process is involved here in the most trivial form (see section \ref{sec:tplot-track-mapping} for less trivial forms).
+The parameter \verb|-dk| means ``default chart kind'': just draw all tracks (in this case the only track) using this kind of chart (\verb|dots|). So, the track mapping process is involved here in the most trivial form (see section \nameref{sec:tplot-track-mapping} for less trivial forms).
 
-And we get figure \ref{fig:tplot-simple-example}.
+\begin{wrapfigure}[2]{c}{50pt}
+\vspace{-25pt}
+\center
+\includegraphics[height=40pt]{pics/tplot/dots.png}
+\end{wrapfigure}
+And we get figure \ref{fig:tplot-simple-example} (next page).
 
 \begin{figure}[h!]
 \center
@@ -173,29 +185,29 @@ We see the following features:
 \begin{itemize}
 \item The times clearly split into higher and lower values, obviously corresponding to cache hits and cache misses within Arcadia.
 \item At some point the distribution suddenly changes to the worse and requests start taking more time. I do not remember what was the reason for that, but there certainly was one.
-\item There's a lot of overplotting on the picture; it's difficult to understand the distribution more precisely. To do that, we'll need quantile plots or bin plots (see section \ref{sec:tplot-chart-kinds}). An alternative is to use semi-transparent dots (e.g. \verb|-dk 'dots 0.3'| would give 30\% opacity). There exist other ways of coping with overplotting (just google \emph{overplotting}), but they're not currently implemented in \timeplot{}.
+\item There's a lot of overplotting on the picture; it's difficult to understand the distribution more precisely. To do that, we'll need quantile plots or bin plots (see section \nameref{sec:tplot-plot-kinds}). An alternative is to use semi-transparent dots (e.g. \verb|-dk 'dots 0.3'| would give 30\% opacity). There exist other ways of coping with overplotting (just google \emph{overplotting}), but they're not currently implemented in \timeplot{}.
 \end{itemize}
 
 \textbf{Where to go next:}
 
 From this simple example you can go several ways:
 \begin{itemize}
-\item Get a glimpse of the power of \timeplot{} in a more serious example~--- continue to section \ref{sec:tplot-motivation} where a reasonably complex real-world example is considered.
-\item Explore the ways to \textbf{map event streams onto charts}: draw multiple tracks, displaying a single input data point on multiple charts or vice versa, displaying data points from multiple tracks on a single chart (e.g. a color-coded dot plot)~--- see section \ref{sec:tplot-track-mapping}.
-\item Learn to use the \textbf{more complex event types} (e.g. discrete, impulse, edge and interval events) and to draw other types of charts on them~--- read section \ref{sec:tplot-concepts} and continue to section \ref{sec:tplot-chart-kinds}.
-\item Draw more interesting \textbf{types of charts}~--- just go to section \ref{sec:tplot-chart-kinds}.
-\item Take a look at the \textbf{example charts gallery} and choose something that looks interesting or applicable to your case~--- go to section \ref{sec:tplot-gallery}.
+\item Get a glimpse of the power of \timeplot{} in a more serious example~--- continue to section \nameref{sec:tplot-motivation} where a reasonably complex real-world example is considered.
+\item Explore the ways to \textbf{map event streams onto charts}: draw multiple tracks, display a single input data point on multiple charts or vice versa, display data points from multiple tracks on a single plot (e.g. a color-coded dot plot)~--- see section \nameref{sec:tplot-track-mapping}.
+\item Learn to use the \textbf{more complex event types} (e.g. discrete, impulse, edge and interval events) and to draw other types of charts on them~--- read section \nameref{sec:tplot-concepts} and continue to section \nameref{sec:tplot-plot-kinds}.
+\item Draw more interesting \textbf{types of charts}~--- just go to section \nameref{sec:tplot-plot-kinds}.
+\item Take a look at the \textbf{example charts gallery} and choose something that looks interesting or applicable to your case~--- go to section \nameref{sec:tplot-gallery}.
 \end{itemize}
 
 \subsection{Motivation: More complex example}
 \label{sec:tplot-motivation}
-In this section we'll show a moderately complex real-world example of usage of \timeplot{}, with the goal to show its power and inspire the reader to learn more, but without the goal to provide detailed explanations. To become capable of using \timeplot{} for similar purposes \emph{yourself}, you'll have to actually read the other chapters.
+In this section we'll show a moderately complex real-world example of usage of \timeplot{}, with the goal to show its power and inspire the reader to learn more, but without the goal to provide detailed explanations. To become capable of using \timeplot{} for similar purposes \emph{yourself}, you'll have to actually read the next chapters.
 
-Consider the log format described in section \ref{sec:general-usage}~--- the one where tasks consist of a ``fetching data from memcached'' stage and ``computational'' stage, delimited by \verb|Begin|, \verb|GetCommonData|, \verb|End|.
+Consider the log format described in the \nameref{sec:tplot-intro}~--- the one where tasks consist of a ``fetching data from memcached'' stage and ``computational'' stage, delimited by \verb|Begin|, \verb|GetCommonData|, \verb|End|.
 
 Suppose that we have several racks of servers and just one memcached server. Let us compare how memcached latencies differ when it is accessed by workers from different racks (since cross-rack access requires an extra network packet hop through a switch device, accesing from the same rack should be faster).
 
-memcached is on rack 1. Let us specifically compare performance on machine \verb|UNIT011| and \verb|UNIT051|. So, we should expect access from \verb|UNIT011| to be faster.
+memcached is on rack 1. Let us specifically compare performance on machines \verb|UNIT011| and \verb|UNIT051|. So, we should expect access from \verb|UNIT011| to be faster.
 
 The filtered log looks like this:
 \begin{verbatim}
@@ -209,7 +221,7 @@ UNIT051 2010-12-09 01:54:42.046 P3164 Debug GetCommonData 390256d1/98
 ...
 \end{verbatim}
 
-Let us make this into a trace file for \timeplot{}, which in this case looks very similar to \splot{}:
+Let us make this into a trace file for \timeplot{}:
 \begin{verbatim}
 $ awk '{t=$2 " " $3; p="memcached-" $1 "." $4}
        /Begin /        {print t " >" p} 
@@ -238,7 +250,15 @@ $ tplot -if trace.txt -o latencies.png
         -dk 'within[-] duration binf 10 0.001,0.002,0.005,0.01,0.05'
 \end{verbatim}
 
-For now do not concern yourself with the meaning of the value of the \verb|-dk| parameter, it will be explained later (in section \ref{sec:tplot-chart-kinds}). Just concentrate on the input (how easy it is to generate from the logs) and the output (how much it tells about the system). The result is shown on figure \ref{fig:tplot-motivating-example}.
+\begin{wrapfigure}[3]{c}{70pt}
+\vspace{-25pt}
+\center
+\includegraphics[height=50pt]{pics/tplot/tplot-motivating-example.png}
+\end{wrapfigure}
+
+For now do not concern yourself with the meaning of the value of the \verb|-dk| parameter, it will be explained later (in section \nameref{sec:tplot-plot-kinds}). Just concentrate on the input (how easy it is to generate from the logs) and the output (how much it tells about the system). The result is shown on figure \ref{fig:tplot-motivating-example} (next page).
+
+\pagebreak
 
 \begin{figure}[h]
 \center
@@ -259,13 +279,13 @@ For now do not concern yourself with the meaning of the value of the \verb|-dk| 
 
 Together these fractions add up to 1.
 
-The graphs differ:
+\textbf{The graphs differ}:
 \begin{itemize}
-\item There are no green bars on the second graph, i.e. access from a different rack is never under 0.001s
-\item The yellow bars are a lot larger on the second graph, i.e. times in 0.002s--0.005s are much more frequent when accessing from a different rack
+\item There are \textbf{no green bars} on the second graph, i.e. access from a different rack is never under 0.001s
+\item The \textbf{yellow bars are a lot larger} on the second graph, i.e. times in 0.002s--0.005s are much more frequent when accessing from a different rack
 \end{itemize}
 
-To reiterate: given the log, the following commands:
+\textbf{To reiterate:} given the log, the following commands:
 
 \begin{verbatim}
 $ awk '{t=$2 " " $3; p="memcached-" $1 "." $4}
@@ -276,7 +296,7 @@ $ tplot -if trace.txt -o latencies.png
         -dk 'within[-] duration binf 10 0.001,0.002,0.005,0.01,0.05'
 \end{verbatim}
 
-\ldots give us figure \ref{fig:tplot-motivating-example} which shows how exactly the distributions of access latencies from different racks differ and emphasize the importance of choosing a close-by memcached according to network topology.
+\ldots give us figure \ref{fig:tplot-motivating-example} which shows how exactly the distributions of access latencies from different racks differ and emphasize the importance of choosing a nearby memcached according to network topology.
 
 This example illustrated the mode of usage of \timeplot{}, the ease of generating input for it from an arbitrary log and the terseness of its syntax for specifying the kind of graph to be plotted. We'll now give some basic definitions and then proceed to a formal and exhaustive reference.
 
@@ -286,13 +306,13 @@ This example illustrated the mode of usage of \timeplot{}, the ease of generatin
 This section lists the concepts necessary for precisely understanding the rest of the manual. You can quickly skim over them now just to get a feeling of what they're about, and return to them later when something is unclear.
 
 \begin{description}
-\item[Event] The atomic unit of information in the input trace. It can be one of several types: ``something has happened'' (this is called an \emph{impulse event}), ``something has started/finished'' (this is called an \emph{edge event}, and the activity delimited by start/finish is called an \emph{interval event}), ``some parameter had a particular value'' (\emph{measurement event}) etc. The types of events correspond to what is usually found in typical program log entries, so they're very easy to generate from logs. Every event happens on a particular \emph{input track} and at a particular time, for example: \verb|2012-06-04 14:24:05.384 =rtime.mcd1 5.371|, this is a numeric measurement event, here \verb|rtime.mcd1| is the input track name and \verb|2012-06-04 14:24:05.384| is the timestamp.
-\item[Input track] A named group of events in the \emph{input trace}. Usually corresponds to a single parameter being measured, e.g. there could be an input track for request execution times named ``rtime''. Thus, an input track nearly always consists of events of the same type. Here we would have the input trace consist of events with track ``rtime'' and numeric type (see different types of events described in section \ref{sec:tplot-input-format}).
-\item[Output track] A named group of events in the \emph{output plots}. The output track of an event is often equal to its input track, but in the general case is determined from its input track by the process of \emph{track mapping} described in section \ref{sec:tplot-track-mapping}. All events with the same output track are shown on the same output plot.
-\item[Output plot] A single plot in the resulting picture. The picture consists of several output plots vertically stacked together with a common time axis. A single output plot is based on values from a single output track.
-\item[Track mapping] The process by which events from different input tracks are mapped onto output tracks, e.g. to make events from several input tracks participate in a single output plot, or to make events from a single input track participate in several different output plots. It is controlled by \verb|+k|, \verb|-k|, \verb|+dk|, \verb|-dk| options and by the \verb|within[SEP]| plot type. The process is described in section \ref{sec:tplot-track-mapping}.
-\item[Plot kind] The type of an output plot: e.g. dot plot, line plot, quantile plot etc. There are also a couple of ``meta'' plot kinds: duration plots and ``within''-plots. Plot kinds usually have parameters, e.g. the percentiles of interest on a quantile plot. Plot kinds are described in section \ref{sec:tplot-plot-kinds}.
-\item[Plot kind mapping] The process by which we determine what plot kind to use for visualizing a particular output track. It is based upon matching regexes against the input tracks of events mapped to this output track. It happens together with the track mapping and is described in detail in section \ref{sec:tplot-track-mapping}.
+\item[Event] The atomic unit of information in the input trace. It can be one of several types: ``something has happened'' (this is called an \emph{impulse event}), ``something has started/finished'' (this is called an \emph{edge event}, and the activity delimited by start/finish is called an \emph{interval event}), ``some magnitude had a particular value'' (\emph{measurement event}) etc. The types of events correspond to what is usually found in typical program log entries, so they're very easy to generate from logs. Every event happens on a particular \emph{input track} and at a particular time, for example: \verb|2012-06-04 14:24:05.384 =rtime.mcd1 5.371|, this is a numeric measurement event (``\texttt{=}''), here \verb|rtime.mcd1| is the input track name and \verb|2012-06-04 14:24:05.384| is the timestamp.
+\item[Input track] A named group of events in the \emph{input trace}. Usually corresponds to a single magnitude being measured or to a single family of activities, e.g. there could be an input track for request execution times named ``rtime'' or a track for types of received messages by client C1 named ``mtype-C1''. Thus, an input track nearly always consists of events of the same type. Here we would have the input trace consist of numeric measurement events with track ``rtime'' (see different types of events described in section \nameref{sec:tplot-input-format}).
+\item[Output track] A named group of events in the \emph{output plots}. The output track of an event is often equal to its input track, but in general it is determined from its input track by the process of \emph{track mapping} described in section \nameref{sec:tplot-track-mapping}. All events with the same output track are shown on the same output plot.
+\item[Output plot] A single plot in the resulting picture. The picture consists of several output plots vertically stacked together with a common time axis. A single output plot is based on values from a single output track, which may have events from one or more input tracks.
+\item[Track mapping] The process by which events from different input tracks are mapped onto output tracks, e.g. to make events from multiple input tracks participate in a single output plot, or to make events from a single input track participate in multiple output plots. It is controlled, together with \emph{plot kind mapping}, by \verb|+k|, \verb|-k|, \verb|+dk|, \verb|-dk| options and by the \verb|within[SEP]| plot kind. The process is described in section \nameref{sec:tplot-track-mapping}.
+\item[Plot kind] The type of an output plot: e.g. dot plot, line plot, quantile plot etc. There are also a couple of ``meta'' plot kinds: duration plots and ``within''-plots. Plot kinds usually have parameters, e.g. the percentiles of interest on a quantile plot. Plot kinds are described in section \nameref{sec:tplot-plot-kinds}.
+\item[Plot kind mapping] The process by which we determine what plot kind to use for visualizing a particular output track. It also depends on \verb|+k|, \verb|-k|, \verb|+dk| and \verb|-dk| options, happens together with \emph{track mapping} and is described in detail in section \nameref{sec:tplot-track-mapping}.
 \end{description}
 
 To put it together: Input events belong to input tracks and get mapped onto output tracks via track mapping. Every output track gives rise to an output plot, its kind determined by plot kind mapping. Output plots are stacked vertically with a common time axis.
@@ -300,14 +320,14 @@ To put it together: Input events belong to input tracks and get mapped onto outp
 The following concepts are important for understanding the different event types and some plots produced from them:
 \begin{description}
 \item[Measurement event] An event that denotes that a particular parameter was measured to have a particular value (e.g.: the amount of free memory was measured to be 2.5Gb), or that something happened with a particular value of a parameter. E.g.: an I/O write request \emph{for 65536 bytes} arrived (e.g. \verb|... =writeBytes 65536|)~--- a numeric measurement; or an I/O request \emph{of type ``write''} has arrived (e.g. \verb|... =requestType `WRITE|)~--- a discrete measurement.
-\item[Impulse event] An input event without parameters that just denotes that something has happened, determined solely by its input track. E.g. if you're interested in the number of completed requests per second (e.g. \verb|... !requestCompleted|), you can have an input trace with impulse events on the track \verb|requestCompleted| and draw an ``event count'' plot of that.
+\item[Impulse event] An input event without parameters that just denotes that something has happened, determined solely by its input track. E.g. if you're interested in the number of completed requests per second (e.g. \verb|... !requestCompleted|), you can have an input trace with impulse events on the track \verb|requestCompleted| and draw an ``activity count'' plot of that (\nameref{sec:tplot-plot-acount}).
 \item[Edge event (counter bump)] An input event without parameters that denotes that some activity (interval event) has \emph{started} or \emph{finished}. It can at the same time be thought of as a bump of +1 (\verb|>request|) or -1 (\verb|<request|) of the logical counter associated with this event's input track.
 \item[Counter] A logical time-varying variable associated with an \emph{input track} which can be bumped by start/finish (\emph{edge}) events. E.g. if your input trace includes events like ``started/finished executing a request'' (e.g. \verb|... >request|, \verb|<request|), then \timeplot{} will keep a logical counter that can be used to plot the number of concurrently executing requests.
 \item[Interval event] The logical activity delimited by a start and finish event. More precisely, the period during which a \emph{counter} is greater than zero. The duration of interval events can be measured (producing a bunch of numeric measurement events) and you can draw all kinds of plots about these numeric events, e.g. if your input trace has ``request started/request finished'' events but doesn't have numeric events about request durations, you can still draw a quantile plot of request durations. This is called a \emph{duration plot}.
 \item[Duration plot] A meta-plot which means ``plot something else, using as input the durations of interval events formed by edge events of this track'' (e.g. \verb|duration quantile 1 0.5,0.75,0.95|).
 \end{description}
 
-We advise you to revisit section \ref{sec:tplot-motivation} and see if you now better understand the concepts involved there.
+We advise you to revisit section \nameref{sec:tplot-motivation} and see if you now better understand the concepts involved there.
 
 \pagebreak
 \subsection{Input format}
@@ -352,11 +372,12 @@ Syntax & Meaning & Example \\
 \end{tabular}
 
 \pagebreak
-\subsection{Chart kinds}
-\label{sec:tplot-chart-kinds}
+\subsection{Plot kinds}
+% TODO Labels for indiviual kinds
+\label{sec:tplot-plot-kinds}
 This section describes all the chart kinds supported by \timeplot{} and gives recommendations on their usage.
 
-Remember that the input data for each chart is events with a common \emph{output track} (see section \ref{sec:tplot-track-mapping}), i.e. possibly events from multiple \emph{input tracks}.
+Remember that the input data for each chart is events with a common \emph{output track} (see section \nameref{sec:tplot-track-mapping}), i.e. possibly events from multiple \emph{input tracks}.
 
 Many of the chart kinds accept a ``bin width'' parameter: for example, \texttt{quantile 10 0.5,0.9,0.95} has a bin width of 10 seconds. This means that \timeplot{} will slice the time axis into 10-second bins, compute the 50\%, 90\% and 95\% quantiles of data in each bin and visualize the result in some way.
 
@@ -365,10 +386,39 @@ Many of the chart kinds accept a ``bin width'' parameter: for example, \texttt{q
 \textbf{Empty chart~--- \texttt{none}}. This means ``do not draw this output track at all''. This is useful if you have prepared a trace from a large log file and invoke \timeplot{} several times on it, omitting some tracks altogether.
 
 \noindent
-\textbf{Chart over interval durations~--- \texttt{duration XXX}}. This means ``draw chart of kind XXX over the numeric durations of interval events delimited by start/finish events on this track'' (see section \ref{sec:tplot-concepts}). Durations are measured in seconds.
+\textbf{Chart over interval durations~--- \texttt{duration XXX} or \texttt{duration drop XXX}}. This means ``draw chart of kind XXX over the numeric durations of interval events delimited by start/finish events (``\verb|>|''/``\verb|<|'') on this track'' (see section \nameref{sec:tplot-concepts}). Durations are measured in seconds. If \verb|drop| is specified, then names of the original input tracks are replaced by the name of the output track (of course, this only makes a difference if multiple input tracks map to this output track).
+
+For example, suppose you're measuring \textbf{processing of requests by several stages} of a single-threaded pipeline (i.e., every stage of the pipeline processes at most 1 item at a time). Then your log might say:
+\begin{verbatim}
+.... >process.stage1
+.... >process.stage2
+.... <process.stage1
+.... >process.stage3
+.... >process.stage1
+.... <process.stage2
+....
+\end{verbatim}
+
+If you're interested in making a dot plot of processing durations by different stages of the pipeline, you might want to do it in two ways:
+\begin{itemize}
+ \item 1 plot per stage: just use \texttt{-dk 'duration dots'}.
+ \item 1 plot combined, with dots colored according to stage: use \verb|-dk 'within[.] duration dots'|. Then all these tracks will be put onto the same otput track \verb|process|, but their original names will be preserved and you'll get a plot like this: \inlinethumbnail{pics/tplot/thedeemon-dots-all.png}.
+ \item If you use \verb|-dk 'within[.] duration drop dots'|, you'll get this: \inlinethumbnail{pics/tplot/thedeemon-dots-drop.png}, but this is likely not what you wanted.
+\end{itemize}
+
+On the other hand, suppose you're measuring the durations of \textbf{processing of requests themselves}. Then your log might say:
+\begin{verbatim}
+.... >process.14ca3ef7
+.... <process.a28f3b13
+....
+\end{verbatim}
+
+In this hypothetical log, all request ids are unique (contrary to pipeline stage names in the previous example). So, if we try drawing a dot plot of their durations using \verb|-dk 'within[.] duration dots'|, we'll get a plot where every dot has a different color, which makes no sense (and is not even processible at all by plot types such as \verb|quantile|). That's what \verb|duration drop XXX| is for: we can use \verb|-dk 'within[.] duration drop dots'| and the output track \verb|process| will contain durations of the requests with input track names not like \verb|process.14ca3ef7|, but simply \verb|process|, drawn in a single color.
 
 \noindent
-\textbf{Chart for M:1 track mapping~--- \texttt{within}}. This is not a chart kind proper, it's a means for displaying values from multiple input tracks on a single chart. See section \ref{sec:tplot-track-mapping}.
+\textbf{Chart for M:1 track mapping~--- \texttt{within}}. This is not a chart kind proper, it's a means for displaying values from multiple input tracks on a single chart. See section \nameref{sec:tplot-track-mapping}.
+
+% TODO Complex example
 
 \pagebreak
 \subsubsection{Kinds for numeric data}
@@ -379,17 +429,17 @@ All the following chart kinds work on numeric measurement events, i.e. events of
 
 Example with 1 input track (\texttt{dots} without alpha):
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/dots.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/dots.png}}
 
-This is the same graph as in section \ref{sec:tplot-simple-example}: response times of a search engine server are drawn.
+This is the same graph as in section \nameref{sec:tplot-simple-example}: response times of a search engine server are drawn.
 % TODO Make "Example xxx: [image]" non-page-broken.
 Example with multiple input tracks (\texttt{dots} without alpha):
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/dots-create-user-and-profile.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/dots-create-user-and-profile.png}}
 
 Previous example with \texttt{dots 0.2}:
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/dots-create-user-and-profile-alpha.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/dots-create-user-and-profile-alpha.png}}
 
 \pagebreak
 \noindent
@@ -397,7 +447,7 @@ Previous example with \texttt{dots 0.2}:
 
 Example with 1 input track per output track:
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/lines.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/lines.png}}
 
 These are request execution times as seen by 1) the caller (\emph{client}) and 2) the callee (\emph{gateway}), plotted from a trace with events of the form \texttt{=client 0.053}.
 
@@ -407,22 +457,22 @@ These are request execution times as seen by 1) the caller (\emph{client}) and 2
 
 Example with two tracks, on the same data as in \texttt{dots}: \texttt{sum 1 overlayed}
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/sum-create-user-and-profile-overlayed.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/sum-create-user-and-profile-overlayed.png}}
 
 Same with \texttt{sum 1 stacked} or just \texttt{sum 1}:
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/sum-create-user-and-profile-stacked.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/sum-create-user-and-profile-stacked.png}}
 
 \pagebreak
 \noindent
 \textbf{Line plot of cumulative sum~--- \texttt{cumsum N [TYPE]}}~--- same as \texttt{sum}, but accumulation happens not in every bin but from the beginning of time.
 Example with two tracks, on the same data as in \texttt{dots}: \texttt{cumsum 1 overlayed}
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/cumsum-create-user-and-profile-overlayed.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/cumsum-create-user-and-profile-overlayed.png}}
 
 Same with \texttt{cumsum 1 stacked} or just \texttt{cumsum 1}:
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/cumsum-create-user-and-profile-stacked.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/cumsum-create-user-and-profile-stacked.png}}
 
 \pagebreak
 \noindent
@@ -432,13 +482,13 @@ Specifically, within each bin, stacked bars of different color are drawn: $0..q_
 
 Example:
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/tplot-rmq-latency-2.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/tplot-rmq-latency-2.png}}
 
 This is a chart of kind \texttt{quantile 60 0.75,0.90,0.99}. The green bar spans from minimum in a bin to the 75\% quantile, the blue bar starts at 75\% and ends at 90\%, the red bar starts at 90\% and ends at 99\% and the brown bar starts at 99\% and ends at maximum. All this is reflected in the legend.
 
 Another example:
 
-{\centering \includegraphics[width=0.5\textwidth]{pics/tplot/median.png}}
+\centerline{\includegraphics[width=0.5\textwidth]{pics/tplot/median.png}}
 
 This was drawn with kind \texttt{quantile 86400 0.5}. The green bar spans from day minimum to median and the brown bar spans from median to day maximum.
 
@@ -450,7 +500,7 @@ This was drawn with kind \texttt{quantile 86400 0.5}. The green bar spans from d
 
 Example of both \texttt{binf} and \texttt{binh}:
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/binf-binh.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/binf-binh.png}}
 
 \emph{(this graph was made with an old version of \timeplot{} which had a pretty ugly color scheme\ldots)}
 
@@ -463,7 +513,7 @@ Here the same value (page download time by a web crawler) is drawn using both \t
 
 Example:
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/event.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/event.png}}
 
 \pagebreak
 \noindent
@@ -476,7 +526,7 @@ Example:
 
 Example with 1 input track per output track: \texttt{acount 5}
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/acount-begin-end-running.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/acount-begin-end-running.png}}
 
 Here, we draw how many tasks are being 1) started 2) finished 3) being currently executed per every 5 seconds. The trace looked like this:
 
@@ -494,13 +544,13 @@ So, for the top two graphs we're counting \texttt{!} events and for the bottom g
 
 Example with two input tracks per output track: \texttt{within[.] acount 5}
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/tplot-preemption.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/tplot-preemption.png}}
 
 Here we see how the cluster is executing one job at full capacity, then another job comes in, preempts some of the first job's tasks and starts its own tasks there, etc. Each job's task starts are mapped to \texttt{>job.JOBID} and task completions are mapped to \texttt{<job.JOBID}.
 
 Example with several input tracks per output track: \texttt{within[.] acount 5}
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/tplot-4rmq.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/tplot-4rmq.png}}
 
 Here, a single job is being executed on a cluster with a task queue sharded into 4 sub-queues. The graph shows the number of concurrently executing tasks taken from each shard over time (every worker is attached to a single shard; when a task starts on a worker attached to queue shard S, an event \texttt{>run.S} is emitted; when it finishes, \texttt{<run.S} is emitted). We see that some shards deplete later than others.
 
@@ -512,11 +562,11 @@ Here, a single job is being executed on a cluster with a task queue sharded into
 
 Example with both 1 and several input tracks per output track: \texttt{+k run 'apercent 60 420' +k run 'within[.] apercent 60 420'}
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/tplot-two-different-jobs-parallelization.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/tplot-two-different-jobs-parallelization.png}}
 
 \emph{The original log has been lost and only a picture with manually erased axis labels was left. Originally, there were labels on all axes. 1 tick on the X axis is actually 1 hour.}
 
-Here, two jobs are being executed on a cluster with 420 cores. The graphs show utilization of the cluster (what percentage of cores are busy at any given moment) by both jobs separately and together. When a task starts, an event \texttt{>run.JOBID} is emitted; when a task completes, \texttt{<run.JOBID} is emitted. To understand how we get three plots here (1 per job and 2 for both together), see section \ref{sec:tplot-track-mapping}.
+Here, two jobs are being executed on a cluster with 420 cores. The graphs show utilization of the cluster (what percentage of cores are busy at any given moment) by both jobs separately and together. When a task starts, an event \texttt{>run.JOBID} is emitted; when a task completes, \texttt{<run.JOBID} is emitted. To understand how we get three plots here (1 per job and 2 for both together), see section \nameref{sec:tplot-track-mapping}.
 
 \pagebreak
 \noindent
@@ -524,9 +574,9 @@ Here, two jobs are being executed on a cluster with 420 cores. The graphs show u
 
 Example with two input tracks per output track: \texttt{within[.] acount 5}
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/acount-fly-run-manyjobs.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/acount-fly-run-manyjobs.png}}
 
-Here, two jobs are executing on the cluster, each job's task starts are mapped to \texttt{>absolute.JOBID} and \texttt{>relative.JOBID} and task completions are mapped to \texttt{<absolute.JOBID} and \texttt{<relative.JOBID}. Then \texttt{relative} is drawn with \texttt{within[.] afreq 5} and \texttt{absolute} with \texttt{within[.] acount 5}: \texttt{-k relative 'within[.] afreq 5' -k absolute 'within[.] acount 5'}\footnote{In the latest versions of \timeplot{} you don't need this data duplication, you can use \texttt{+k}~--- see section \ref{sec:tplot-track-mapping}}. Both graphs illuminate different interesting aspects of the data.
+Here, two jobs are executing on the cluster, each job's task starts are mapped to \texttt{>absolute.JOBID} and \texttt{>relative.JOBID} and task completions are mapped to \texttt{<absolute.JOBID} and \texttt{<relative.JOBID}. Then \texttt{relative} is drawn with \texttt{within[.] afreq 5} and \texttt{absolute} with \texttt{within[.] acount 5}: \texttt{-k relative 'within[.] afreq 5' -k absolute 'within[.] acount 5'}\footnote{In the latest versions of \timeplot{} you don't need this data duplication, you can use \texttt{+k}~--- see section \nameref{sec:tplot-track-mapping}}. Both graphs illuminate different interesting aspects of the data.
 
 \pagebreak
 \subsubsection{Kinds for discrete data}
@@ -537,7 +587,7 @@ Here, two jobs are executing on the cluster, each job's task starts are mapped t
 
 Example: \texttt{hist 60}
 
-{\centering \includegraphics[width=0.8\textwidth]{pics/tplot/hist.png}}
+\centerline{\includegraphics[width=0.8\textwidth]{pics/tplot/hist.png}}
 
 Here, we draw the frequency of different outcomes of page downloads by a web crawler written in Java. The input trace consists of events like \texttt{=Code `OK}, \texttt{=Code `java.io.IOException} etc.
 
@@ -580,7 +630,7 @@ The suffixes are needed because otherwise the names of output tracks for the dif
 
 \textbf{Events from several similarly named input tracks drawn on a single plot:} Assume that you wish to draw dot plots of request times to different memcached servers not on several vertically stacked plots, but on a single dot plot, with different servers color-coded. Assume again that the input tracks are named \verb|rtime.SERVER|. 
 
-Then you should use the \verb|within[SEP]| plot meta-type: \verb|-k rtime 'within[.] dots'|. This means: map input tracks to output tracks by dropping everything after the separator \verb|SEP|, in this case after \verb|.|, and we get a single output track \verb|rtime| to which go all the events from \verb|rtime.mcd1|, \verb|rtime.mcd2| etc. The plot type \verb|dots| will then take care of color-coding the different input tracks within a single output track. Other plot types deal with this situation in a sensible manner too, see section \ref{sec:tplot-chart-kinds}.
+Then you should use the \verb|within[SEP]| plot meta-type: \verb|-k rtime 'within[.] dots'|. This means: map input tracks to output tracks by dropping everything after the separator \verb|SEP|, in this case after \verb|.|, and we get a single output track \verb|rtime| to which go all the events from \verb|rtime.mcd1|, \verb|rtime.mcd2| etc. The plot type \verb|dots| will then take care of color-coding the different input tracks within a single output track. Other plot types deal with this situation in a sensible manner too, see section \nameref{sec:tplot-plot-kinds}.
 
 \pagebreak
 \subsection{Option reference}
@@ -601,13 +651,13 @@ Then you should use the \verb|within[SEP]| plot meta-type: \verb|-k rtime 'withi
 \hline
 \verb|-or WIDTHxHEIGHT| & Output resolution, e.g. \texttt{640x480} & Extension of \texttt{-o} \\
 \hline
-\verb|-tf PATTERN| & Format of time in the input file as in http://linux.die.net/man/3/strptime but with fractional seconds supported via \verb|\%OS| - will parse \verb|12.4039| or \verb|12,4039|.  Also, \verb|%^[+-][N]s| will parse seconds since the epoch, for example \verb|%^-3s| are milliseconds since the epoch (N can only be 1 digit) & \verb|%Y-%m-%d %H:%M:%OS| \\
+\verb|-tf PATTERN| & Format of time in the input file as in \href{http://linux.die.net/man/3/strptime}{man strptime} but with fractional seconds supported via \verb|\%OS| - will parse \verb|12.4039| or \verb|12,4039|.  Also, \verb|%^[+-][N]s| will parse seconds since the epoch, for example \verb|%^-3s| are milliseconds since the epoch (N can only be 1 digit) & \verb|%Y-%m-%d %H:%M:%OS| \\
 \hline
-\verb|-dk KIND| & Default diagram kind. Do not forget to quote it! See section \ref{sec:tplot-track-mapping}. & None \\
+\verb|-dk KIND| & Default diagram kind. Do not forget to quote it! See section \nameref{sec:tplot-track-mapping}. & None \\
 \hline
 \verb|+dk KIND| & --- & None \\
 \hline
-\verb|-k PATTERN KIND| & Diagram kind for pattern PATTERN. See section \ref{sec:tplot-track-mapping}. & None \\
+\verb|-k PATTERN KIND| & Diagram kind for pattern PATTERN. See section \nameref{sec:tplot-track-mapping}. & None \\
 \hline
 \verb|+k PATTERN KIND| & --- & None \\
 \hline
@@ -620,9 +670,95 @@ Then you should use the \verb|within[SEP]| plot meta-type: \verb|-k rtime 'withi
 \end{longtable}
 
 \pagebreak
+\subsection{Example data and exercises}
+In this section we list some example datasources and exercises to try on them.
+
+\textbf{Consumer power consumption.} \url{http://archive.ics.uci.edu/ml/datasets/Individual+household+electric+power+consumption}. This dataset contains measurements of power consumption of a single household, measuring several characteristics over the course of several years. It's in a simple CSV format which is described at the link. Beware: some data is not available and there are question marks in place of missing data items. You can completely skip such rows for the purpose of this exercise.
+
+\textbf{Excerpt from the log:}
+\begin{verbatim}
+Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub_metering_1;Sub_metering_2;Sub_metering_3
+16/12/2006;17:24:00;4.216;0.418;234.840;18.400;0.000;1.000;17.000
+16/12/2006;17:25:00;5.360;0.436;233.630;23.000;0.000;1.000;16.000
+16/12/2006;17:26:00;5.374;0.498;233.290;23.000;0.000;2.000;17.000
+16/12/2006;17:27:00;5.388;0.502;233.740;23.000;0.000;1.000;17.000
+16/12/2006;17:28:00;3.666;0.528;235.680;15.800;0.000;1.000;17.000
+\end{verbatim}
+
+\begin{itemize}
+ \item Make a dot plot of \verb|Voltage| for January 1st, 2007. Do not limit \emph{the trace}, use \verb|-fromTime| and \verb|-toTime|. It will look like this: \inlinethumbnail{pics/tplot/power-voltage.png}
+ \item Make a line plot of \verb|Global_active_power| vs \verb|Global_reactive_power| on one plot and a line plot of \verb|Voltage| on another (i.e., the result should be a stack of two plots), for January 1st, 2007. Use an opacity level of 0.5. It will look like this: \inlinethumbnail{pics/tplot/power-active-reactive-voltage.png}
+ \item Make a quantile plot, with quantiles of 0.1, 0.5 and 0.9 over bins of 1 day, for \verb|Global_active_power| and \verb|Global_reactive_power|, for the entire dataset. It will look like this: \inlinethumbnail{pics/tplot/power-active-reactive-quantile.png}
+\end{itemize}
+
+\textbf{Video encoding.} \emph{This dataset generously provided by Dmitry Popov.} \url{TODO upload}. This is a set of logs of a video encoding pipeline. For every video sample, the log contains times that this sample entered several steps of the pipeline: \verb|Grab1|, \verb|Grab2|, \verb|SR.YUV| and \verb|AviWr|. The three logs show how the same video was encoded with 3 versions of the program after different optimizations.
+
+\textbf{Excerpt from the log:}
+This excerpt shows all entries in the log \verb|1.txt| relating to sample \verb|[0]|. In the full log, entries for all samples are intermixed. Use column 1 as the timestamp.
+\begin{verbatim}
+0.000000 (0.000000) (0.000000) Grab1 sample [0] 0.000000, locking..
+0.000006 (0.000006) (0.000006) Grab1 [0] got lock, carry on..
+0.000611 (0.000604) (0.000611) Grab1 [0] sample processed.
+0.000615 (0.000000) (0.000615) Par1.In received sample [0]
+0.000629 (0.000000) (0.000629) SR.YUV got sample [0]
+0.011636 (0.011007) (0.011636) SR.YUV done with sample [0]
+0.011643 (0.000000) (0.011643) ParLast.In received sample [0]
+0.011661 (0.000000) (0.011661) Grab2 sample [0] 0.000000, locking..
+0.011666 (0.000005) (0.011666) Grab2 [0] got lock, carry on..
+0.014947 (0.003280) (0.014947) Grab2 [0] sample processed.
+0.598770 (0.000000) (0.598770) AviWr.V video sample [0] received
+9.736371 (0.000466) (9.736371) AviWr.V [0] WriteVideo, locking..
+9.736373 (0.000001) (9.736373) AviWr.V [0] got lock, writing..
+9.736460 (0.000086) (9.736460) AviWr.V [0] write complete.
+\end{verbatim}
+
+\begin{itemize}
+ \item Plot the number of samples arriving per second to \verb|Grab1|, \verb|Grab2|, \verb|SR.YUV| and \verb|AviWr|. The result will look like this: \inlinethumbnail{pics/tplot/thedeemon-acount.png}
+ \item Make an event plot, using impulse events for sample arrivals to these stages. Limit to the first 20 seconds. The result will look like this: \inlinethumbnail{pics/tplot/thedeemon-event.png}
+ \item Make 4 dot plots for durations of processing at these stages. The result will look like this: \inlinethumbnail{pics/tplot/thedeemon-dots.png}
+ \item Plot the same, but on a single plot (hint: use \verb|within|). The result will look like this: \inlinethumbnail{pics/tplot/thedeemon-dots-all.png}
+\end{itemize}
+
+\textbf{DrWeb log}. \url{TODO provide}. \emph{This log was generously provided by Paul Graphov.} This is a log of DrWeb Antivirus Server, and the most interesting entries in it are those relating to TCP data flow and to DB transactions:
+
+% TODO Ask Paul if I understood the log format correctly.
+\begin{verbatim}
+20121024.114904.78 db3 [  415   448] mth:1  ...:ANTON-WIN7RU: data arrived, 32b
+20121024.114904.78 tr2 [  415   448] mth:1  ...:ANTON-WIN7RU: rcv 17 GETTIME(6348666174470429760) 0b data
+20121024.114904.78 db3 [  415   448] mth:1  ...:ANTON-WIN7RU: cancel timeout, GETTIME
+20121024.114904.78 tr2 [  415   448] mth:1  ...:ANTON-WIN7RU: cmd (49b) "11 TIME 6348666174470429760 6348666174478278600"
+20121024.114904.78 db3 [  415   448] mth:1  ...:ANTON-WIN7RU: cancel timeout, prolongate
+20121024.114904.78 db3 [  415   448] mth:1  ...:ANTON-WIN7RU: set timeout to 60000 ms <6348666180478295800>
+20121024.114904.78 db3 [  415   449] mth:2  ...:ANTON-WIN7RU: data arrived, 14b
+\end{verbatim}
+
+and
+
+\begin{verbatim}
+20121024.114904.78 db3 [  415   449] mth:2  [DB] Successful BEGIN transaction, 00.000 wait
+20121024.114904.78 db3 [  415   449] mth:2  [IntDB] Statement "..."
+20121024.114904.78 db3 [  415   449] mth:2  [DB] OK, 00.000, ...
+20121024.114904.78 db3 [  415   449] mth:2  [IntDB] Statement "..."
+20121024.114904.78 db2 [  415   449] mth:2  [DB] 1 row, 00.000, ...
+20121024.114904.78 db3 [  415   449] mth:2  [IntDB] Statement "..."
+20121024.114904.78 db2 [  415   449] mth:2  [DB] 79 rows, 00.000, ...
+20121024.114904.78 db3 [  415   449] mth:2  [IntDB] Statement "COMMIT"
+20121024.114904.78 db3 [  415   449] mth:2  [DB] Database has been freed but nobody wants it now 
+20121024.114904.78 db3 [  415   449] mth:2  [DB] Successful COMMIT transaction, 3 statements, 00.000 wait, 00.000 execute, 00.000 commit 
+\end{verbatim}
+
+\begin{itemize}
+ \item Plot the data arrival rate (according to \verb|data arrived| entries) per 5-second bins (use \verb|sum|). The result should look like this: \inlinethumbnail{pics/tplot/graphov-arrival.png}
+ \item Plot the transaction commit rate (according to \verb|Successful COMMIT| entries) per 5-second bins. The result should look like this: \inlinethumbnail{pics/tplot/graphov-txcommit.png}
+ \item Plot the same transaction commit rate, but so that we can see how it adds up from contributions by different threads (\verb|mth:1|, \verb|pth:2| etc.). Limit to the interval from 12:00 to 13:00. The result should look like this: \inlinethumbnail{pics/tplot/graphov-txcommit-bythread.png}
+ \item Same as above, \emph{and use the same trace file}, but make it 1 plot per thread type (\verb|mth|, \verb|pth|, \verb|dbv| etc., but still with a breakdown \emph{by thread} within each type's plot). The result should look like this: \inlinethumbnail{pics/tplot/graphov-txcommit-bythreadtype.png}
+\end{itemize}
+
+\pagebreak
 \subsection{Gallery}
 \label{sec:tplot-gallery}
 % TODO
+% TODO Reference relevant sections
 
 \pagebreak
 \section{\splot{} ~--- visualizing behavior of many \mbox{concurrent processes}}
@@ -885,7 +1021,7 @@ Option & Meaning & Default value \\
 \hline
 \verb|-bh BARHEIGHT| & Vertical height of each track's activity bars, pixels, or \verb|fill| to use all the available vertical space & \verb|fill| \\
 \hline
-\verb|-tf PATTERN| & Format of time in the input file as in http://linux.die.net/man/3/strptime but with fractional seconds supported via \verb|\%OS| - will parse \verb|12.4039| or \verb|12,4039|.  Also, \verb|%^[+-][N]s| will parse seconds since the epoch, for example \verb|%^-3s| are milliseconds since the epoch (N can only be 1 digit) & \verb|%Y-%m-%d %H:%M:%OS| \\
+\verb|-tf PATTERN| & Format of time in the input file as in \href{http://linux.die.net/man/3/strptime}{man strptime} but with fractional seconds supported via \verb|\%OS| - will parse \verb|12.4039| or \verb|12,4039|.  Also, \verb|%^[+-][N]s| will parse seconds since the epoch, for example \verb|%^-3s| are milliseconds since the epoch (N can only be 1 digit) & \verb|%Y-%m-%d %H:%M:%OS| \\
 \hline
 \verb|-tickInterval MILLIS| & Ticks on the X axis will be this often & \verb|1000| \\
 \hline
@@ -992,9 +1128,8 @@ The following people contributed code to the tools or provided help otherwise at
 \item Dmitry Astapov and Julia Astakhova gave a lot of feedback.
 \item Orion Jankowski did a pullrequest which exposed a number of bugs.
 \item Jason Dusek, Ilya Teterin, Julia Chertkova gave examples of their usage of \timeplot{}.
+\item Dmitry Popov provided the video encoding logs dataset.
+\item Paul Graphov provided the DrWeb logs dataset.
 \end{itemize}
 
 \end{document}
-
-
-
