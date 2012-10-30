@@ -11,6 +11,7 @@
 \usepackage{nameref}
 \usepackage{fullpage}
 \usepackage{wrapfig}
+\usepackage{array}
 
 \begin{document}
 
@@ -26,10 +27,13 @@ two tools for visualizing logs and temporal data}
 \def\timeplot{\textbf{timeplot}}
 \def\awk{\textbf{awk}}
 
-% TODO Make image top-aligned with text.
-\newcommand{\inlinethumbnail}[1]{\includegraphics[width=0.12\textwidth]{#1}}
+\newcommand{\thumbnail}[1]{\includegraphics[width=0.12\textwidth]{#1}}
+
+\newcommand{\inlinethumbnail}[1]{\framebox{$\vcenter{\hbox{\includegraphics[width=0.12\textwidth]{#1}}}$}}
 
 \setlength{\parskip}{2mm plus1mm minus1mm}
+
+\newcolumntype{V}{>{\centering\vspace{5px}\arraybackslash} m{.2\linewidth} }
 
 \pagebreak
 \section{Introduction}
@@ -320,7 +324,7 @@ To put it together: Input events belong to input tracks and get mapped onto outp
 The following concepts are important for understanding the different event types and some plots produced from them:
 \begin{description}
 \item[Measurement event] An event that denotes that a particular parameter was measured to have a particular value (e.g.: the amount of free memory was measured to be 2.5Gb), or that something happened with a particular value of a parameter. E.g.: an I/O write request \emph{for 65536 bytes} arrived (e.g. \verb|... =writeBytes 65536|)~--- a numeric measurement; or an I/O request \emph{of type ``write''} has arrived (e.g. \verb|... =requestType `WRITE|)~--- a discrete measurement.
-\item[Impulse event] An input event without parameters that just denotes that something has happened, determined solely by its input track. E.g. if you're interested in the number of completed requests per second (e.g. \verb|... !requestCompleted|), you can have an input trace with impulse events on the track \verb|requestCompleted| and draw an ``activity count'' plot of that (\nameref{sec:tplot-plot-acount}).
+\item[Impulse event] An input event without parameters that just denotes that something has happened, determined solely by its input track. E.g. if you're interested in the number of completed requests per second (e.g. \verb|... !requestCompleted|), you can have an input trace with impulse events on the track \verb|requestCompleted| and draw an ``activity count'' plot of that (\verb|acount|).
 \item[Edge event (counter bump)] An input event without parameters that denotes that some activity (interval event) has \emph{started} or \emph{finished}. It can at the same time be thought of as a bump of +1 (\verb|>request|) or -1 (\verb|<request|) of the logical counter associated with this event's input track.
 \item[Counter] A logical time-varying variable associated with an \emph{input track} which can be bumped by start/finish (\emph{edge}) events. E.g. if your input trace includes events like ``started/finished executing a request'' (e.g. \verb|... >request|, \verb|<request|), then \timeplot{} will keep a logical counter that can be used to plot the number of concurrently executing requests.
 \item[Interval event] The logical activity delimited by a start and finish event. More precisely, the period during which a \emph{counter} is greater than zero. The duration of interval events can be measured (producing a bunch of numeric measurement events) and you can draw all kinds of plots about these numeric events, e.g. if your input trace has ``request started/request finished'' events but doesn't have numeric events about request durations, you can still draw a quantile plot of request durations. This is called a \emph{duration plot}.
@@ -373,7 +377,6 @@ Syntax & Meaning & Example \\
 
 \pagebreak
 \subsection{Plot kinds}
-% TODO Labels for indiviual kinds
 \label{sec:tplot-plot-kinds}
 This section describes all the chart kinds supported by \timeplot{} and gives recommendations on their usage.
 
@@ -673,7 +676,7 @@ Then you should use the \verb|within[SEP]| plot meta-type: \verb|-k rtime 'withi
 \subsection{Example data and exercises}
 In this section we list some example datasources and exercises to try on them.
 
-\textbf{Consumer power consumption.} \url{http://archive.ics.uci.edu/ml/datasets/Individual+household+electric+power+consumption}. This dataset contains measurements of power consumption of a single household, measuring several characteristics over the course of several years. It's in a simple CSV format which is described at the link. Beware: some data is not available and there are question marks in place of missing data items. You can completely skip such rows for the purpose of this exercise.
+\subsubsection{Consumer power consumption.} \url{http://archive.ics.uci.edu/ml/datasets/Individual+household+electric+power+consumption}. This dataset contains measurements of power consumption of a single household, measuring several characteristics over the course of several years. It's in a simple CSV format which is described at the link. Beware: some data is not available and there are question marks in place of missing data items. You can completely skip such rows for the purpose of this exercise.
 
 \textbf{Excerpt from the log:}
 \begin{verbatim}
@@ -685,13 +688,17 @@ Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub
 16/12/2006;17:28:00;3.666;0.528;235.680;15.800;0.000;1.000;17.000
 \end{verbatim}
 
-\begin{itemize}
- \item Make a dot plot of \verb|Voltage| for January 1st, 2007. Do not limit \emph{the trace}, use \verb|-fromTime| and \verb|-toTime|. It will look like this: \inlinethumbnail{pics/tplot/power-voltage.png}
- \item Make a line plot of \verb|Global_active_power| vs \verb|Global_reactive_power| on one plot and a line plot of \verb|Voltage| on another (i.e., the result should be a stack of two plots), for January 1st, 2007. Use an opacity level of 0.5. It will look like this: \inlinethumbnail{pics/tplot/power-active-reactive-voltage.png}
- \item Make a quantile plot, with quantiles of 0.1, 0.5 and 0.9 over bins of 1 day, for \verb|Global_active_power| and \verb|Global_reactive_power|, for the entire dataset. It will look like this: \inlinethumbnail{pics/tplot/power-active-reactive-quantile.png}
-\end{itemize}
+\begin{tabular}{m{300px}V}
+\hline
+\emph{Exercise} & \emph{Expected result} \\
+\hline
+Make a dot plot of \verb|Voltage| for January 1st, 2007. Do not limit \emph{the trace}, use \verb|-fromTime| and \verb|-toTime|. & \thumbnail{pics/tplot/power-voltage.png} \\
+Make a line plot of \verb|Global_active_power| vs \verb|Global_reactive_power| on one plot and a line plot of \verb|Voltage| on another (i.e., the result should be a stack of two plots), for January 1st, 2007. Use an opacity level of 0.5. & \thumbnail{pics/tplot/power-active-reactive-voltage.png} \\
+Make a quantile plot, with quantiles of 0.1, 0.5 and 0.9 over bins of 1 day, for \verb|Global_active_power| and \verb|Global_reactive_power|, for the entire dataset. & \thumbnail{pics/tplot/power-active-reactive-quantile.png} \\
+\hline
+\end{tabular}
 
-\textbf{Video encoding.} \emph{This dataset generously provided by Dmitry Popov.} \url{TODO upload}. This is a set of logs of a video encoding pipeline. For every video sample, the log contains times that this sample entered several steps of the pipeline: \verb|Grab1|, \verb|Grab2|, \verb|SR.YUV| and \verb|AviWr|. The three logs show how the same video was encoded with 3 versions of the program after different optimizations.
+\subsubsection{Video encoding.} \emph{This dataset generously provided by Dmitry Popov.} \url{http://jkff.info/datasets/dmitry-popov-video-encoding.tar.gz}. This is a set of logs of a video encoding pipeline. For every video sample, the log contains times that this sample entered several steps of the pipeline: \verb|Grab1|, \verb|Grab2|, \verb|SR.YUV| and \verb|AviWr|. The three logs show how the same video was encoded with 3 versions of the program after different optimizations.
 
 \textbf{Excerpt from the log:}
 This excerpt shows all entries in the log \verb|1.txt| relating to sample \verb|[0]|. In the full log, entries for all samples are intermixed. Use column 1 as the timestamp.
@@ -712,14 +719,16 @@ This excerpt shows all entries in the log \verb|1.txt| relating to sample \verb|
 9.736460 (0.000086) (9.736460) AviWr.V [0] write complete.
 \end{verbatim}
 
-\begin{itemize}
- \item Plot the number of samples arriving per second to \verb|Grab1|, \verb|Grab2|, \verb|SR.YUV| and \verb|AviWr|. The result will look like this: \inlinethumbnail{pics/tplot/thedeemon-acount.png}
- \item Make an event plot, using impulse events for sample arrivals to these stages. Limit to the first 20 seconds. The result will look like this: \inlinethumbnail{pics/tplot/thedeemon-event.png}
- \item Make 4 dot plots for durations of processing at these stages. The result will look like this: \inlinethumbnail{pics/tplot/thedeemon-dots.png}
- \item Plot the same, but on a single plot (hint: use \verb|within|). The result will look like this: \inlinethumbnail{pics/tplot/thedeemon-dots-all.png}
-\end{itemize}
+\begin{tabular}{m{300px}V}
+\emph{Exercise} & \emph{Expected result} \\
+\hline
+Plot the number of samples arriving per second to \verb|Grab1|, \verb|Grab2|, \verb|SR.YUV| and \verb|AviWr|. & \thumbnail{pics/tplot/thedeemon-acount.png} \\
+Make an event plot, using impulse events for sample arrivals to these stages. Limit to the first 20 seconds. & \thumbnail{pics/tplot/thedeemon-event.png} \\
+Make 4 dot plots for durations of processing at these stages. & \thumbnail{pics/tplot/thedeemon-dots.png} \\
+Plot the same, but on a single plot (hint: use \verb|within|). & \thumbnail{pics/tplot/thedeemon-dots-all.png} \\
+\end{tabular}
 
-\textbf{DrWeb log}. \url{TODO provide}. \emph{This log was generously provided by Paul Graphov.} This is a log of DrWeb Antivirus Server, and the most interesting entries in it are those relating to TCP data flow and to DB transactions:
+\subsubsection{DrWeb log}. \emph{This log was generously provided by Paul Graphov.} \url{http://jkff.info/datasets/paul-graphov-drweb.tar.gz}. This is a log of DrWeb Antivirus Server, and the most interesting entries in it are those relating to TCP data flow and to DB transactions:
 
 % TODO Ask Paul if I understood the log format correctly.
 \begin{verbatim}
@@ -747,12 +756,16 @@ and
 20121024.114904.78 db3 [  415   449] mth:2  [DB] Successful COMMIT transaction, 3 statements, 00.000 wait, 00.000 execute, 00.000 commit 
 \end{verbatim}
 
-\begin{itemize}
- \item Plot the data arrival rate (according to \verb|data arrived| entries) per 5-second bins (use \verb|sum|). The result should look like this: \inlinethumbnail{pics/tplot/graphov-arrival.png}
- \item Plot the transaction commit rate (according to \verb|Successful COMMIT| entries) per 5-second bins. The result should look like this: \inlinethumbnail{pics/tplot/graphov-txcommit.png}
- \item Plot the same transaction commit rate, but so that we can see how it adds up from contributions by different threads (\verb|mth:1|, \verb|pth:2| etc.). Limit to the interval from 12:00 to 13:00. The result should look like this: \inlinethumbnail{pics/tplot/graphov-txcommit-bythread.png}
- \item Same as above, \emph{and use the same trace file}, but make it 1 plot per thread type (\verb|mth|, \verb|pth|, \verb|dbv| etc., but still with a breakdown \emph{by thread} within each type's plot). The result should look like this: \inlinethumbnail{pics/tplot/graphov-txcommit-bythreadtype.png}
-\end{itemize}
+\begin{tabular}{m{300px}V}
+\hline
+\emph{Exercise} & \emph{Expected result} \\
+\hline
+Plot the data arrival rate (according to \verb|data arrived| entries) per 5-second bins (use \verb|sum|). & \thumbnail{pics/tplot/graphov-arrival.png} \\
+Plot the transaction commit rate (according to \verb|Successful COMMIT| entries) per 5-second bins. & \thumbnail{pics/tplot/graphov-txcommit.png} \\
+Plot the same transaction commit rate, but so that we can see how it adds up from contributions by different threads (\verb|mth:1|, \verb|pth:2| etc.). Limit to the interval from 12:00 to 13:00. & \thumbnail{pics/tplot/graphov-txcommit-bythread.png} \\
+Same as above, \emph{and use the same trace file}, but make it 1 plot per thread type (\verb|mth|, \verb|pth|, \verb|dbv| etc., but still with a breakdown \emph{by thread} within each type's plot). & \thumbnail{pics/tplot/graphov-txcommit-bythreadtype.png} \\
+\hline
+\end{tabular}
 
 \pagebreak
 \subsection{Gallery}
