@@ -1,6 +1,3 @@
-% TODO Walk through all emails and see what people don't understand
-
-
 \documentclass{article}
 
 \usepackage{color}
@@ -16,6 +13,7 @@
 \usepackage{array}
 \usepackage{soul}
 \usepackage{subfigure}
+\usepackage{placeins}
 
 
 \begin{document}
@@ -49,7 +47,13 @@ two tools for visualizing logs and temporal data}
 
 \splot{} and \timeplot{} are tools for visualizing temporal data, especially useful for visualizing data from program logs.
 
-You can get them and see the installation instructions at \url{http://jkff.info/software/timeplotters}. Both tools are heavily battle-tested and evolved in response to concrete visualization requirements at a large-scale cluster computing project which the author was part of, though the tools are in no way bound to this particular domain.
+You can get them and see the installation instructions at \url{http://jkff.info/software/timeplotters} (though native packages are not always up-to-date with the latest code). 
+
+The code is hosted at \url{http://github.com/jkff/timeplot} and \url{http://github.com/jkff/splot}. This manual's source is hosted at \url{http://github.com/jkff/timeplotters-doc}.
+
+For any questions, bugs or suggestions, write me at \url{ekirpichov@gmail.com} or submit a github issue or pull request. 
+
+Both tools are heavily battle-tested and evolved in response to concrete visualization requirements at a large-scale cluster computing project which the author was part of, though the tools are in no way bound to this particular domain.
 
 \begin{wrapfigure}[4]{r}{120pt}
 \vspace{-25pt}
@@ -95,8 +99,6 @@ $ splot -if trace.txt -o picture.png ..options..
 
 \textbf{Let us look at a real-life example} without considering it in too much detail. Use it only for the purpose of understanding the general pattern of usage.
 \pagebreak
-
-% TODO Maybe use memcached example here instead?
 
 In this example, we're drawing the activity of a computational cluster using \splot{}. There's a bunch of worker processes which process tasks from a shared queue. Every task has two stages: 1) fetch data from memcached and 2) run computations. \textbf{Here we'll just show how to run the tool, and not explain what the parameters or even the result mean.}
 
@@ -260,7 +262,7 @@ Now we'll plot the distribution of durations of memcached access times according
 
 \begin{verbatim}
 $ tplot -if trace.txt -o latencies.png
-        -dk 'within[-] duration binf 10 0.001,0.002,0.005,0.01,0.05'
+        -dk 'within[-] duration drop binf 10 0.001,0.002,0.005,0.01,0.05'
 \end{verbatim}
 
 \begin{wrapfigure}[3]{c}{70pt}
@@ -306,7 +308,7 @@ $ awk '{t=$2 " " $3; p="memcached-" $1 "." $4}
        /GetCommonData /{print t " <" p}'
        log.txt > trace.txt
 $ tplot -if trace.txt -o latencies.png
-        -dk 'within[-] duration binf 10 0.001,0.002,0.005,0.01,0.05'
+        -dk 'within[-] duration drop binf 10 0.001,0.002,0.005,0.01,0.05'
 \end{verbatim}
 
 \ldots give us figure \ref{fig:tplot-motivating-example} which shows how exactly the distributions of access latencies from different racks differ and emphasize the importance of choosing a nearby memcached according to network topology.
@@ -400,7 +402,7 @@ Many of the chart kinds accept a \textbf{``bin width'' parameter}: for example, 
 \vskip10px
 
 \noindent
-\textbf{Chart over interval durations}~--- \hlverb{duration XXX} or \hlverb{duration drop XXX}. This means ``draw chart of kind XXX over the numeric durations of interval events delimited by start/finish events (``\hlverb{>}''/``\hlverb{<}'') on this track'' (see section \nameref{sec:tplot-concepts}). Durations are measured in seconds. If \hlverb{drop} is specified, then names of the original input tracks are replaced by the name of the output track (of course, this only makes a difference if multiple input tracks map to this output track).
+\textbf{Chart over interval durations}~--- \hlverb{duration XXX} or \hlverb{duration drop XXX}. This means ``draw chart of kind XXX over the numeric durations of interval events delimited by start/finish events (``\hlverb{>}''/``\hlverb{<}'') on this track'' (see section \nameref{sec:tplot-concepts}). Durations are measured in seconds. If \hlverb{drop} is specified, then names of the original input tracks are replaced by the name of the output track (of course, this only makes a difference if multiple input tracks map to this output track, i.e. if we're speaking about \hlverb{within[SEP] duration drop}).
 
 For example, suppose you're measuring \textbf{processing of requests by several stages} of a single-threaded pipeline (i.e., every stage of the pipeline processes at most 1 item at a time). Then your log might say:
 \begin{verbatim}
@@ -554,7 +556,7 @@ Example with \hlverb{!TRACK}: times of frame arrivals to different stages of a v
 \begin{itemize}
  \item Each input track mapping to this output track is interpreted as a counter
  \item \hlverb{>} means ``+1'', \hlverb{<} means ``-1'', \hlverb{!} are counted separately
- \item In every bin, draw stacked bars: 1 bar per input track mapped to this output track (with a consistent coloring across bins), height of the bar is average value of the counter + number of \hlverb{!} events in this bin (usually you \emph{either} use \hlverb{>} and \hlverb{<}, \emph{or} \hlverb{!}).
+ \item In every bin, draw stacked bars: 1 bar per input track mapped to this output track (with a consistent coloring across bins), height of the bar is average value of the counter + number of \hlverb{!} events in this bin (usually you \emph{either} use \hlverb{>} and \hlverb{<}, \emph{or} \hlverb{!}), divided by bin width (so the graph gives ``rate per second'' and is scale-invariant under change of N).
 \end{itemize}
 
 Example with 1 input track per output track: \hlverb{acount 5}
@@ -623,7 +625,7 @@ Example: absolute and relative frequency of database transactions performed by d
 
 Example: \hlverb{hist 60}
 
-\centerline{\includegraphics[width=\textwidth]{pics/tplot/hist.png}}
+\centerline{\includegraphics[width=\textwidth]{pics/tplot/download-exceptions-hist.png}}
 
 Here, we draw the frequency of different outcomes of page downloads by a web crawler written in Java. The input trace consists of events like \hlverb{=Code `OK}, \hlverb{=Code `java.io.IOException} etc.
 
@@ -648,18 +650,44 @@ An output track is drawn using the plot type specified by the first \hlverb{k} o
 
 To understand this, compare it to the simple special cases shown below.
 
-% TODO Thumbnails of example
+\vskip10px
 
+\begin{wrapfigure}[4]{c}{70pt}
+\vspace{-25pt}
+\center
+\includegraphics[height=50pt]{pics/tplot/dots.png}
+\end{wrapfigure}
 \textbf{Simplest case, single input track and single plot type:} 1 input track, 1 plot kind mapping~--- the ``default'' mapping specified by \hlverb{-dk K}. This sole input track should be drawn with plot kind K (e.g. \hlverb{-dk dots}). We'll have 1 dot plot in the output, showing events from the sole input track.
 
+\vskip10px
+
+\begin{wrapfigure}[4]{c}{70pt}
+\vspace{-25pt}
+\center
+\includegraphics[height=50pt]{pics/tplot/acount.png}
+\end{wrapfigure}
 \textbf{Multiple input tracks, single plot type:} Several input tracks, 1 default plot kind mapping. We get several plots of the same type (e.g. several dot plots) vertically stacked with a common time axis. \textbf{Example:} if we have several memcached servers and we measure the durations of requests to them, we can have input tracks named \hlverb{rtime.mcd1}, \hlverb{rtime.mcd2} etc., and draw them, again, using \hlverb{-dk dots}.
 
+\vskip10px
+
+\begin{wrapfigure}[4]{c}{70pt}
+\vspace{-25pt}
+\center
+\includegraphics[height=40pt]{pics/tplot/dist-quantile.png}
+\end{wrapfigure}
 \textbf{Multiple input tracks with different plot types:} We wish to draw some input tracks with one plot type and some with another. We specify several regex/type mappings using \hlverb{-k PATTERN TYPE}. 
 
 E.g. if we also have an input track \hlverb{cache} with discrete measurement events \hlverb{`HIT} and \hlverb{`MISS} and we wish to draw their rate, we can use \hlverb{-k rtime dots} \hlverb{-k cache 'freq 1'}. Then the output will have vertically stacked dot plots for tracks \hlverb{rtime.mcd1}, \hlverb{rtime.mcd2} etc, and a frequency plot for the track \hlverb{cache}. 
 
 Input tracks that don't match any \hlverb{-k} patterns get drawn using the default plot type specified by \hlverb{-dk}.
 
+\vskip10px
+
+\begin{wrapfigure}[5]{c}{70pt}
+\vspace{-25pt}
+\center
+\includegraphics[height=50pt]{pics/tplot/binf-binh.png}
+\end{wrapfigure}
 \textbf{Single input track drawn with several different plot types:} We wish to make events from a single input track participate in multiple output plots, e.g. draw both the absolute and relative frequency of a track of discrete measurement events. Then we use \hlverb{+k PATTERN '+SUF TYPE'}. This means ``for tracks that match \hlverb{PATTERN}, append \hlverb{.SUF} to their name and draw a plot of type \hlverb{TYPE}''. 
 
 For example: \hlverb{+k cache '+f freq 1'} \hlverb{+k cache '+h hist 1'} will produce two output tracks: \hlverb{cache.f} drawn with plot type \hlverb{freq 1} and \hlverb{cache.h} drawn with plot type \hlverb{hist 1}. Or, if (for some reason) you decide to draw both a dot and line plot of request times, you can try \hlverb{+k rtime '+dot dots'} \hlverb{+k rtime '+line lines'} and get tracks \hlverb{rtime.mcd1.dot}, \hlverb{rtime.mcd2.dot} \ldots drawn with \hlverb{dots} and \hlverb{rtime.mcd1.line}\ldots drawn with \hlverb{lines}. 
@@ -668,6 +696,13 @@ There's also \hlverb{+dk '+SUF TYPE'} with similar semantics.
 
 The suffixes are needed because otherwise the names of output tracks for the different plot types specified by \hlverb{+k} for a single input track would be identical, i.e. it would be the same output track, \timeplot{} cannot have two identically named output tracks. If the suffix is not specified (e.g. \hlverb{+k rtime dots}) it is assumed to be empty.
 
+\vskip10px
+
+\begin{wrapfigure}[4]{c}{70pt}
+\vspace{-25pt}
+\center
+\includegraphics[height=50pt]{pics/tplot/tplot-three-jobs.png}
+\end{wrapfigure}
 \textbf{Events from several similarly named input tracks drawn on a single plot:} Assume that you wish to draw dot plots of request times to different memcached servers not on several vertically stacked plots, but on a single dot plot, with different servers color-coded. Assume again that the input tracks are named \hlverb{rtime.SERVER}. 
 
 Then you should use the \hlverb{within[SEP]} plot meta-type: \hlverb{-k rtime 'within[.] dots'}. This means: map input tracks to output tracks by dropping everything after the separator \hlverb{SEP}, in this case after \hlverb{.}, and we get a single output track \hlverb{rtime} to which go all the events from \hlverb{rtime.mcd1}, \hlverb{rtime.mcd2} etc. The plot type \hlverb{dots} will then take care of color-coding the different input tracks within a single output track. Other plot types deal with this situation in a sensible manner too, see section \nameref{sec:tplot-plot-kinds}.
@@ -711,7 +746,7 @@ Then you should use the \hlverb{within[SEP]} plot meta-type: \hlverb{-k rtime 'w
 
 \pagebreak
 \subsection{Example data and exercises}
-In this section we list some example datasources and exercises to try on them.
+In this section we list some example datasources and exercises to try on them. \textbf{WARNING:} The section \nameref{sec:tplot-gallery} has solutions to many of the exercises. Don't look at graphs marked ``exercise'' if you don't want a spoiler.
 
 \subsubsection{Consumer power consumption.} \url{http://archive.ics.uci.edu/ml/datasets/Individual+household+electric+power+consumption}. This dataset contains measurements of power consumption of a single household, measuring several characteristics over the course of several years. It's in a simple CSV format which is described at the link. Beware: some data is not available and there are question marks in place of missing data items. You can completely skip such rows for the purpose of this exercise.
 
@@ -731,7 +766,7 @@ Date;Time;Global_active_power;Global_reactive_power;Voltage;Global_intensity;Sub
 \hline
 Make a dot plot of \hlverb{Voltage} for January 1st, 2007. Do not limit \emph{the trace}, use \hlverb{-fromTime} and \hlverb{-toTime}. & \thumbnail{pics/tplot/power-voltage.png} \\
 Make a line plot of \hlverb{Global\_active\_power} vs \hlverb{Global\_reactive\_power} on one plot and a line plot of \hlverb{Voltage} on another (i.e., the result should be a stack of two plots), for January 1st, 2007. Use an opacity level of 0.5. & \thumbnail{pics/tplot/power-active-reactive-voltage.png} \\
-Make a quantile plot, with quantiles of 0.1, 0.5 and 0.9 over bins of 1 day, for \hlverb{Global\_active\_power} and \hlverb{Global\_reactive\_power}, for the entire dataset. & \thumbnail{pics/tplot/power-active-reactive-quantile.png} \\
+Make a quantile plot, with quantiles of 0.1, 0.5 and 0.9 over bins of 1 day, for \hlverb{Global\_active\_power} and \hlverb{Voltage}, for the entire dataset. & \thumbnail{pics/tplot/power-voltage-quantile.png} \\
 \hline
 \end{tabular}
 
@@ -803,15 +838,84 @@ Same as above, \emph{and use the same trace file}, but make it 1 plot per thread
 \hline
 \end{tabular}
 
-% TODO Put second Paul's example
-
 \pagebreak
 \subsection{Gallery}
 \label{sec:tplot-gallery}
-% TODO
-% TODO Reference relevant sections
+Look for plots that seem like what you want. Consult sections \nameref{sec:tplot-input-format}, \nameref{sec:tplot-plot-kinds} and \nameref{sec:tplot-track-mapping}.
 
+% Simplest numeric plots and basic track mapping
+\begin{figure}[H]
+\centering
+\subfigure[A dot plot of request execution times. 1 input track, 1 output track. Events look like \hlverb{=arc 1542}, plot type \hlverb{-dk dots}. Data provided by Julia Astakhova]{\includegraphics[width=0.4\textwidth]{pics/tplot/dots.png}}
+\quad
+\subfigure[A dot plot of two parts of request execution times. 2 input tracks, 1 output track. Events look like \hlverb{=t.createUser 25} or \hlverb{=t.createProfile 7}, plot type \hlverb{-dk 'within[.] dots'}. Data provided by Julia Astakhova.]{\includegraphics[width=0.4\textwidth]{pics/tplot/dots-create-user-and-profile.png}}
+\\
+\subfigure[Same as above but with transparency. Plot type \hlverb{-dk 'within[.] dots 0.2'}]{\includegraphics[width=0.4\textwidth]{pics/tplot/dots-create-user-and-profile-alpha.png}}
+\quad
+\subfigure[A line plot. 2 input tracks, 2 output tracks. Events look like \hlverb{>client.THREADID}, \hlverb{<client.THREADID}, \hlverb{>gateway.THREADID} and \hlverb{<gateway.THREADID}, plot type \hlverb{-dk 'within[.] duration drop lines'}]{\includegraphics[width=0.4\textwidth]{pics/tplot/lines.png}}
+\end{figure}
+
+\FloatBarrier
 \pagebreak
+
+% More numeric
+\begin{figure}[H]
+\centering
+\subfigure[Distribution of page download times by a web crawler~--- how many take $<100$ms, $100..500$ etc. this is actually 2 different picture stitched together. each had 1 input track with events like \hlverb{=time 254.1}. drawn with \hlverb{-dk 'binh 900'} and \hlverb{-dk 'binf 900'} correspondingly (15-minute slices).]{\includegraphics[width=0.4\textwidth]{pics/tplot/binf-binh.png}}
+\quad
+\subfigure[Distribution of request execution times and rate of request completions per minute in an akka program. events look like \hlverb{>akka.THREADID}, \hlverb{<akka.THREADID} and \hlverb{!finish}, plot type \hlverb{+k akka '+b within[.] duration drop binf 60 0.01,0.1,1,2,5' +k akka '+q within[.] duration drop quantile 60 0.25,0.5,0.75' -k finish 'acount 60'}. data provided by arnaud bailly.]{\includegraphics[width=0.4\textwidth]{pics/tplot/dist-quantile.png}}
+\\
+\subfigure[Change of some super-secret value at Yandex over time: per-day min, max and median are shown. Events look like \hlverb{=foo 9350}, plot type \hlverb{-dk 'quantile 86400 0.5'}.]{\includegraphics[width=0.4\textwidth]{pics/tplot/median.png}}
+\quad
+\subfigure[\textbf{EXERCISE.} Per-day quantiles of power and voltage consumed by 1 household for a year. Events look like \hlverb{=power 5.6} and \hlverb{=voltage 245.2}, plot type \hlverb{-dk 'quantile 86400 0.1,0.5,0.9'}.]{\includegraphics[width=0.4\textwidth]{pics/tplot/power-voltage-quantile.png}}
+\end{figure}
+
+\FloatBarrier
+\pagebreak
+
+% Discrete
+\begin{figure}[H]
+\centering
+\subfigure[Absolute and relative number of task completions of two on a cluster per second. Events look like \hlverb{=absolute `244} and \hlverb{=relative `244} (this was before \timeplot{} had the \hlverb{+k} construction, so events had to be duplicated), plot type \hlverb{-k absolute 'hist 1' -k relative 'freq 1'}.]{\includegraphics[width=0.8\textwidth]{pics/tplot/freq-hist.png}}
+\\
+\subfigure[Number of different exception types encountered by a web crawler. Events look like \hlverb{=Code `java.net.SocketException}, plot type \hlverb{-dk 'hist 60'}.]{\includegraphics[width=0.8\textwidth]{pics/tplot/download-exceptions-hist.png}}
+\end{figure}
+
+\FloatBarrier
+\pagebreak
+
+% Events 
+\begin{figure}[H]
+\centering
+\subfigure[Activity of 8 ``computation sites'' to be processed. Events look like \hlverb{>site-5}, \hlverb{<site-5}, plot type \hlverb{-dk event}.]{\includegraphics[width=0.2\textwidth]{pics/tplot/event.png}}
+\quad
+\subfigure[\textbf{EXERCISE.} Frame arrival times to several stages of a video encoding pipeline. Events look like \hlverb{!Grab2}, plot type \hlverb{-dk event}.]{\includegraphics[width=0.4\textwidth]{pics/tplot/thedeemon-event.png}}
+\\
+\subfigure[Number of concurrently running tasks on a cluster. Events look like \hlverb{>running}, \hlverb{<running}, plot type \hlverb{-dk 'acount 5'}.]{\includegraphics[width=0.4\textwidth]{pics/tplot/tplot-job-parallelization.png}}
+\quad
+\subfigure[Number of tasks started and finished per second on a cluster. Events look like \hlverb{!in} and \hlverb{!out}, plot type \hlverb{-dk 'acount 1'}]{\includegraphics[width=0.4\textwidth]{pics/tplot/acount.png}}
+\\
+\subfigure[Number of tasks started, finished and concurrently running per second on a cluster. Events look like \hlverb{!begin/5s}, \hlverb{!end/5s}, \hlverb{>running} and \hlverb{<running}, plot type \hlverb{-dk 'acount 5'}]{\includegraphics[width=0.4\textwidth]{pics/tplot/acount-begin-end-running.png}}
+\quad
+\subfigure[Number of tasks received, completed and submitted (with breakdown by ``task type''~--- ``simulation'' or ``slabbing'') on a cluster. Events look like \hlverb{!got}, \hlverb{!completed}, \hlverb{!submit.Simulation} and \hlverb{!submit.Slabbing}, plot type \hlverb{-k submit 'within[.] acount 1' -dk 'acount 1'}.]{\includegraphics[width=0.4\textwidth]{pics/tplot/rates.png}}
+\end{figure}
+
+\FloatBarrier
+\pagebreak
+
+% More counters
+\begin{figure}[H!]
+\centering
+\subfigure[Number of tasks ``in queue'' and ``in progress'' on a cluster, with breakdown by job id. Events look like \hlverb{>fly.JOBID}, \hlverb{<fly.JOBID}, \hlverb{>run.JOBID} and \hlverb{<run.JOBID}, plot type \hlverb{-dk 'within[.] acount 5'}]{\includegraphics[width=0.4\textwidth]{pics/tplot/acount-fly-run-manyjobs.png}}
+\quad
+\subfigure[\textbf{EXERCISE.} Number of DB transaction commits per second performed from several threads. Events look like \hlverb{!tx.mth:3}, plot type \hlverb{-dk 'within[.] acount 1'}]{\includegraphics[width=0.4\textwidth]{pics/tplot/graphov-txcommit-bythread.png}}
+\\
+\subfigure[\textbf{EXERCISE.} Number of DB transaction commits per second performed from several threads, classified by thread type. Events look like \hlverb{!tx.mth:3}, plot type \hlverb{-dk 'within[:] acount 1'}]{\includegraphics[width=0.4\textwidth]{pics/tplot/graphov-txcommit-bythreadtype.png}}
+\end{figure}
+
+\FloatBarrier
+\pagebreak
+
 \section{\splot{} ~--- visualizing behavior of many \mbox{concurrent processes}}
 
 \splot{} draws a single Gantt-like chart with a birds-eye view of the activity of a number of concurrent processes, each of which may be in one of several different states at each moment (e.g. processing one of several jobs, or being in a particular stage of processing). 
@@ -843,32 +947,28 @@ This example has two tracks ``thread-1'' and ``thread-2'' and demonstrates most 
 Invoke \splot{}:
 \begin{verbatim}
 $ splot -if splot.simplest-example.trace \
-        -o splot.simplest-example.png -w 400 -h 160
+        -o splot.simplest-example.png -w 480 -h 160 \
+        -bh 5 -legendWidth 70
 \end{verbatim}
 
-Result:
-\begin{figure}[h]
-\center
-\includegraphics[scale=0.5]{pics/splot/splot-simplest-example.png}
-\end{figure}
+{\center\includegraphics[scale=0.5]{pics/splot/splot-simplest-example.png} }
+
+Please carefully examine how this corresponds to the trace above. This has no particular meaning~--- it's merely an illustration of the different types of events in the trace. The tracks are ordered by time of the first event, so \hlverb{thread-2} is the top track on this picture.
 
 \pagebreak
 \subsection{Motivation}
 \label{sec:splot-motivation}
-In this section we shall consider the plot we already saw in the introduction and see how it helps highlight a number of problems in the program whose behavior was visualized, that would be difficult to find without \splot{}.
+In this section we shall consider a plot and see how it helps highlight a number of problems in the program whose behavior was visualized, that would be difficult to find without \splot{}.
 
-{
-\center
-\includegraphics[width=\textwidth]{pics/splot/splot-main-example-analyzed.png}
-}
+\centerline{\includegraphics[width=\textwidth]{pics/splot/splot-main-example-analyzed.png}}
 
-Recall that here, the X axis is time, the Y axis is cluster worker (core), orange is computations and blue is fetching data from memcached.
+Here, the X axis is time, the Y axis is cluster worker (core), orange is computations and blue is fetching data from memcached.
 
 There are several anomalies on this picture:
 
 \vspace{3mm}
 
-\textbf{1. Whitespace on the left: Slopes.} The beginning of the picture corresponds to the program startup~--- the first tasks are being fed into the shared queue and workers pick them up and start executing. The whitespace means that a large fraction of the program execution time is spent just warming up, while the workers essentially do nothing. The slopes mean that workers do not receive the first tasks instantly. Either it takes time to pick them from the queue, or they are being fed to the queue not quickly enough.
+\textbf{1. Whitespace on the left: Slopes.} The beginning of the picture corresponds to the program startup~--- the first tasks are being fed into the shared queue and workers pick them up and start executing. \textbf{The whitespace} means that a large fraction of the program execution time is spent just warming up, while the workers essentially do nothing. \textbf{The slopes} mean that workers do not receive the first tasks instantly. Either it takes time to pick them from the queue, or they are being fed to the queue not quickly enough.
 
 \textbf{2. Whitespace on the left: Plateaus.} The plateaus mean that there are moments when no tasks are being picked up at all. Either the queue is hung up, or the task producer. We also see how big an impact this has on the overall cluster utilization: a single 1-second plateau is worth 160 seconds of computations (as there are 160 workers on this picture)!
 
@@ -878,11 +978,13 @@ There are several anomalies on this picture:
 
 \textbf{5. Vertical patterns of white space and blue bars lining up on their left edge.} This means that there are moments when everyone's got nothing to do and the task queue is empty, and then suddenly a lot of tasks appear in the queue and everyone is busy again. This is probably a problem with the task producer~--- maybe it is sending tasks in batches, or something like that.
 
-\textbf{6. A lot of white space on the right.} This means that in the end of the program execution, when all tasks are already in the queue and no new ones will appear, a lot of time is spend when faster workers wait for slower workers. The program finishes when the very last worker finishes. The fraction of this whitespace is very well worth 5-10\% of the total program time. This anomaly is called ``the long tail effect'' and can be eased by increasing the task granularity (i.e. submitting many short tasks rather than several long ones). However, this will obviously increase load on the queue, so we have a trade-off here.
+\textbf{6. A lot of white space on the right.} This means that at the end of the program execution, when all tasks are already in the queue and no new ones will appear, a lot of time is spent when faster workers wait for slower workers. The program finishes when the very last worker finishes. The fraction of this whitespace is very well worth 5-10\% of the total program time. This anomaly is called ``the long tail effect'' and can be eased by increasing the task granularity (i.e. submitting many short tasks rather than several long ones). However, this will obviously increase load on the queue, so we have a trade-off here.
 
 \vspace{3mm}
 
-We see that a simple picture of the cluster behavior showed us quite a few non-trivial things, most of which would be very difficult to find without a visualization.
+We see that a simple picture of the cluster behavior showed us quite a few non-trivial problems, most of which would be very difficult to find without a visualization.
+
+We shall now proceed to a formal description of the concepts and options used in \splot{}.
 
 \pagebreak
 \subsection{Concepts}
@@ -890,10 +992,10 @@ We see that a simple picture of the cluster behavior showed us quite a few non-t
 Let us now consider in detail all the concepts necessary to understand and use \splot{}.
 
 \begin{description}
-\item[Track (also process)] An entity which changes its state between several values (performs several activities) over time. At any moment, a process is doing at most one activity. We're usually interested in seeing the visual pattern emerging between different tracks. For example, it is often meaningful to assign 1 track = 1 thread in a multi-threaded program (in a distributed program one should of course include the machine into the track id).
+\item[Track (also process)] An entity which moves between several states (performs several activities) over time. At any moment, a process is doing at most one activity. We're usually interested in seeing the visual pattern emerging between different tracks. For example, it is often meaningful to assign 1 track = 1 thread in a multi-threaded program (in a distributed program one should of course include the machine into the track id). Tracks are identified by arbitrary strings.
 \item[Activity] A period during which a process is in a particular problem-specific logical state. A single activity is drawn with a single color, as a bar which is horizontally as long as the activity (if there are a lot of tracks, this bar can be as thin as a hairline). For example, if we have a program whose threads are either computing, doing IO or waiting idly, we may depict the `computing' activity with orange color, IO as blue and idle waiting as lack of activity (no color at all).
 \item[Event] Mark of the beginning or end of an activity on a particular track, specifying the activity's color. There are also ``text'' events which allow to draw text markers above the usual colored bars. An event has a timestamp, track and event type (activity start / activity end / text). For example, when our hypothetical program starts doing IO in thread T, we should represent this in \splot{}'s input as an event ``start blue activity on track ''.
-\item[Color] Colors in \splot{} can be specified in several ways. In the simplest form, it can be an SVG color name or hex code (e.g. ``red'' or ``lightblue'' or ``\#ff0033''), it can be an arbitrary string (then a random color will be generated so that different strings correspond to different colors~--- this is useful to color-code an unknown number of different types of activities, e.g. if you have worker processes servicing several clients and you wish to get a picture of who services whom and color-code the clients: ``client-5''), and it can be an arbitrary string within a color scheme (e.g. ``/success/client-5'' or ``/failure/client-5'', and you might define the ``success'' colorscheme to consist of several greenish colors and ``failure'' of reddish).
+\item[Color] Colors in \splot{} can be specified in several ways. In the simplest form, it can be an SVG color name or hex code (e.g. \hlverb{red} or \hlverb{lightblue} or \hlverb{\#ff0033}), it can be an arbitrary string (then a random color will be generated so that different strings correspond to different colors~--- this is useful to color-code an unknown number of different types of activities, e.g. if you have worker processes servicing several clients and you wish to get a picture of who services whom and color-code the clients: \hlverb{client-5}), and it can be an arbitrary string within a color scheme (e.g. \hlverb{/success/client-5} or \hlverb{/failure/client-5}, and you might define the \hlverb{success} colorscheme to consist of several greenish colors and \hlverb{failure} of reddish).
 \item[Color scheme] A list of colors which will be cycled between when generating colors for tracks whose color is not specified explicitly by a SVG color name or hex code.
 \end{description}
 
@@ -901,28 +1003,17 @@ Let us now consider in detail all the concepts necessary to understand and use \
 \subsection{Input format}
 
 The input to \splot{} consists of a series of events.
-\vskip3px
-\begin{tabular}{|l|p{200px}|}
-\hline
-Format & Meaning \\
-\hline
-\texttt{TIME >TRK COLOR} & Start activity of color COLOR on track TRK at time TIME (if there already is an activity, finish it and start a new one instead). \\
-\hline
-\multicolumn{2}{|l|}{\texttt{2010-10-21 16:45:09,431 >r2b3.t5 blue}} \\
-\hline
-\texttt{TIME <TRK} & Finish the current activity of track TRK at time TIME \\
-\hline
-\multicolumn{2}{|l|}{\texttt{2010-10-21 16:45:10,322 <r23.t5}} \\
-\hline
-\texttt{TIME <TRK COLOR} & Finish the current activity of track TRK at time TIME, overriding the color it was given at the start by COLOR. This is useful, e.g. do indicate that an activity failed by drawing it with red color (obviously when the activity begins, we don't know if it will fail or not). \\
-\hline
-\multicolumn{2}{|l|}{\texttt{2010-10-21 16:45:10,322 <r2b3.t5 red}} \\
-\hline
-\texttt{TIME !TRK COLOR TXT} & Draw text TXT with color COL on track TRK, left-justified at time TIME \\
-\hline
-\multicolumn{2}{|l|}{\texttt{2010-10-21 16:45:10,322 !r2b3.t5 black read()}} \\
-\hline
-\end{tabular}
+
+\begin{itemize}
+ \item \hlverb{TIME >TRK COLOR}~--- Start activity of color COLOR on track TRK at time TIME (if there already is an activity, finish it and start a new one instead). \\
+\textbf{Example:} \texttt{2010-10-21 16:45:09,431 >r2b3.t5 blue}
+ \item \hlverb{TIME <TRK}~--- Finish the current activity of track TRK at time TIME. \\
+\textbf{Example:} \texttt{2010-10-21 16:45:10,322 <r23.t5} 
+ \item \hlverb{TIME <TRK COLOR}~--- Finish the current activity of track TRK at time TIME, overriding the color it was given at the start by COLOR. This is useful, e.g. do indicate that an activity failed by drawing it with red color (obviously when the activity begins, we don't know if it will fail or not). \\
+\textbf{Example}: \texttt{2010-10-21 16:45:10,322 <r2b3.t5 red} 
+ \item \hlverb{TIME !TRK COLOR TXT}~--- Draw text TXT with color COL on track TRK, left-justified at time TIME. \\
+\textbf{Example}: \texttt{2010-10-21 16:45:10,322 !r2b3.t5 black read()} 
+\end{itemize}
 
 \pagebreak
 \subsection{Advanced features}
@@ -938,9 +1029,9 @@ Bar height is specified with \hlverb{-bh}: either \hlverb{-bh fill} or \hlverb{-
 
 \hlverb{-bh fill} is vital when you have a lot of tracks (at least dozens). Perhaps it should be the default.
 
-\subsubsection{Expiring activities~--- if \texttt|<| is missing}
+\subsubsection{Expiring activities~--- if \texttt{<} is missing}
 
-In systems where components can crash (which is, most systems :) ), it might happen so that your log catches only the beginning of an activity but not its end, because the component has crashed in the middle. You can tell \splot{} ``expire all activities if they take longer than X seconds'' by using \hlverb{-expire X}; then, if an activity has not finished within X seconds, \splot{} will draw a dashed line and an X marker, meaning that the process probably crashed somewhere on the dashed line\footnote{It's probably meaningful to specify expiration times for each activity separately, but currently \splot{} has just a single global option}.
+In systems where components can crash (which is, most systems :) ), it might happen so that your log catches only the beginning of an activity but not its end, because the component has crashed in the middle. You can tell \splot{} ``expire all activities if they take longer than X seconds'' by using \hlverb{-expire X}; then, if an activity has not finished within X seconds, \splot{} will draw a dashed line and an X marker, meaning that the process probably crashed somewhere on the dashed line\footnote{It's probably meaningful to specify expiration times for each activity separately, but currently \splot{} can't do that}.
 
 Consider a small example similar to the one we had before.
 
@@ -964,31 +1055,23 @@ Consider a small example similar to the one we had before.
 
 Let us draw it with an expiration time of 2000 milliseconds:
 
+\pagebreak
 \begin{verbatim}
 $ splot -if splot.expire-example.trace -o splot-expire-example.png \
-        -expire 2000 -bh 15 -w 400 -h 160
+        -expire 2000 -bh 15 -w 480 -h 160 -legendWidth 70
 \end{verbatim}
 
 Here's what we get:
 
-\begin{figure}[h!]
-\center
-\includegraphics[scale=0.5]{pics/splot/splot-expire-example.png}
-\caption{Using the \hlverb{-expire} option with \splot{}}
-\end{figure}
+\centerline{\includegraphics[scale=0.5]{pics/splot/splot-expire-example.png}}
 
 Here we see that perhaps ``worker-1'' (here drawn second, as its first event happened later than worker-2's) crashed and that's why it didn't do anything in the later parts of the graph.
 
-Figure \ref{fig:splot-expire-large-example} shows a more complex real-life example from a cluster (the input log has unfortunately been lost). Here a large number of workers are preempted at once.
+And this is a more complex real-life example from a cluster (the input log has unfortunately been lost). Here a large number of workers are preempted at once.
 
-\begin{figure}
-\center
-\includegraphics[width=\textwidth]{pics/splot/splot-expire-large-example.png}
-\caption{Using the \hlverb{-expire} option with \splot{}: a real-life example}
-\label{fig:splot-expire-large-example}
-\end{figure}
+\centerline{\includegraphics[width=\textwidth]{pics/splot/splot-expire-large-example.png}}
 
-\subsubsection{Phantom color~--- if \texttt|>| is missing}
+\subsubsection{Phantom color~--- if \texttt{>} is missing}
 
 Sometimes you process logs which start in the middle of the program's execution, so the log doesn't catch the beginning events of activities that were active at the moment the log was started (however, the log \emph{does} catch their finishing events). \splot{} can display such ``phantom'' activities in a color of your choice, using the \hlverb{-phantom COLOR} option. Specifically, if a track starts with a \hlverb{<} event instead of \hlverb{>}, then \splot{} will assume that there was a \hlverb{>} event with color COLOR in the past on this track.
 
@@ -1025,12 +1108,14 @@ We see a gray bar in the beginning of worker-2's track. This is because the firs
 
 \subsubsection{Color auto-generation}
 
-How do we color-code activities in \splot{}'s input if the set of possible activity types is not known in advance? E.g. you have a set a of worker processes which service a fairly small but unknown number of clients. You assign tracks to worker processes, and you wish to color-code the clients to see a picture of who services whom and when.
-\\
+How do we color-code activities in \splot{}'s input if the set of possible activity types is not known in advance? \splot{} can generate colors automatically.
+
+E.g. you have a set a of worker processes which service a fairly small but unknown number of clients. You assign tracks to worker processes, and you wish to color-code the clients to see a picture of who services whom and when.
+
 In this case, you can simply use the client's id as color: for colors that do not parse as SVG color names or hex codes, \splot{} will generate a random color from a default contrast color scheme.
-\\
+
 Let us consider a real-life example. In this example, again some workers are processing tasks, but from different clients.
-The trace looks like this:
+The trace looks like this: here, we use client ids as color codes (\hlverb{8610}, \hlverb{877B} etc.)
 \begin{verbatim}
 ...
 2011-07-27 02:42:03.485 <RACK5UNIT067.37dc
@@ -1042,19 +1127,24 @@ The trace looks like this:
 2011-07-27 02:42:03.498 >RACK2UNIT030.9e7a 071C
 ...
 \end{verbatim}
-So, we use track names of the form \hlverb{MACHINE.WORKERID} and instead of using color at \hlverb{>} events, we use the client ID, asking \splot{} to color-code clients for us. The result is shown on figure \ref{fig:splot-color-gen}. Here red color denotes tasks that completed unsuccessfully and other colors (e.g. green and blue; red is excluded from the default color scheme precisely for situations like this) encode different clients\footnote{Yes, as this rather crazy picture might hint, the program \emph{did} have lots of problems~--- exposing them, that's what \splot{} is for.}.
+So, we use track names of the form \hlverb{MACHINE.WORKERID} and instead of using color at \hlverb{>} events, we use the client ID, asking \splot{} to color-code clients for us. Here red color denotes tasks that completed unsuccessfully and other colors (e.g. green and blue; red is excluded from the default color scheme precisely for situations like this) encode different clients\footnote{Yes, as this rather crazy picture might hint, the program \emph{did} have lots of problems~--- exposing them, that's what \splot{} is for.}.
 
 \begin{figure}[h]
 \center
-\includegraphics[width=\textwidth]{pics/splot/splot-color-gen.png}
+\includegraphics[width=0.6\textwidth]{pics/splot/splot-color-gen.png}
 \caption{Automatic color generation with \splot{}}
 \label{fig:splot-color-gen}
 \end{figure}
 
-Assume the same case as above with worker processes servicing different clients. Assume also that worker processes might be in two modes: regular and workstealing (if they have nothing to do with their current client, they try to service tasks of some other client). We wish to depict regular tasks and tasks picked by work-stealing in different shades: e.g. regular tasks as bright colors and work-stolen ones as pale. We still wish to use color generation for both. This can be achieved by using color schemes. Specifically, we'll color-core regular tasks by \hlverb{TIMESTAMP >WORKER CLIENT} and work-stolen tasks by \hlverb{TIMESTAMP <WORKER /ws/CLIENT}. This tells \splot{} to generate colors for regular tasks from the default color scheme and for work-stolen tasks from the \hlverb{ws} color scheme, which we must specify in \hlverb{-colorscheme} parameters, e.g. \hlverb{-colorscheme ws='lightblue lightgray lightgreen pink beige'} (use more colors if you wish to distinguish between more clients).
+\textbf{Color schemes.} Assume the same case as above with worker processes servicing different clients. Assume also that worker processes might be in two modes: \emph{regular} and \emph{workstealing} (if they have nothing to do with their current client, they try to service tasks of some other client).
+
+We wish to depict regular tasks and tasks picked by work-stealing in different shades: e.g. regular tasks as bright colors and work-stolen ones as pale. We still wish to use color generation for both. 
+
+This can be achieved by using color schemes. Specifically, we'll color-core regular tasks by \hlverb{TIMESTAMP >WORKER CLIENT} and work-stolen tasks by \hlverb{TIMESTAMP <WORKER /ws/CLIENT}. This tells \splot{} to generate colors for regular tasks from the default color scheme and for work-stolen tasks from the \hlverb{ws} color scheme, which we must specify in \hlverb{-colorscheme} parameters, e.g. \hlverb{-colorscheme ws='lightblue lightgray pink beige'} (use more colors if you wish to distinguish between more clients).
 
 \emph{(unfortunately, an example log illustrating this has been lost)}
 
+\pagebreak
 \subsection{Option reference}
 
 \begin{longtable}{|l|p{160px}|l|}
@@ -1092,6 +1182,8 @@ Option & Meaning & Default value \\
 \hline
 \texttt{-colorscheme SCHEME COLORS} & Declare a colorscheme (see ``Color schemes'' above). Can be used multiple times. Scheme is an arbitrary string, e.g. \hlverb{pale} or \hlverb{bright}. COLORS is a space-separated list of colors in SVG or hex, e.g. \hlverb{'red green 0x0000FF'} & \emph{none} \\
 \hline
+\texttt{-legendWidth WIDTH} & Allocate WIDTH pixels to a legend to the left of the plot area & \emph{none} \\
+\hline
 \end{longtable}
 
 \subsection{Gallery}
@@ -1100,14 +1192,14 @@ Figures \ref{fig:splot-gallery-first}--\ref{fig:splot-gallery-last} show a numbe
 \begin{figure}[p]
 \center
 \includegraphics[width=0.8\textwidth]{pics/splot/gradient.png}
-\caption{Blue: working, white: waiting. The task queue's performance was gradually becoming worse and worse.}
+\caption{Blue: working, white: waiting. The task queue's performance was gradually becoming worse and worse, until the job completed and another job started.}
 \label{fig:splot-gallery-first}
 \end{figure}
 
 \begin{figure}[p]
 \center
 \includegraphics[width=0.8\textwidth]{pics/splot/creepy-startup.png}
-\caption{Orange: working, gray: starting, white: waiting. The first time a program loads, it takes a long time. Loads on the same machine take the same time~--- .NET DLL caching (here the sort-by-track-name option is used, currently absent until reimplemented).}
+\caption{Orange: working, gray: starting, white: waiting. The first time a program loads, it takes a long time. Loads on the same machine take the same time~--- .NET DLL caching (here the sort-by-track-name option is used, currently absent until reimplemented). The gray ``gradient'' is actually just a moire pattern.}
 \end{figure}
 
 \begin{figure}[p]
