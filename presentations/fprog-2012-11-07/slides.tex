@@ -1,0 +1,265 @@
+\documentclass{beamer}
+
+\usepackage{hyperref}
+
+\title{\mbox{How my visualization tools use little memory:}\\
+\mbox{A tale of incrementalization and laziness}}
+\author[Eugene Kirpichov]{Eugene Kirpichov $<$ekirpichov@gmail.com$>$}
+\date{Nov 7, 2012}
+\institute[SPb fprog]{St.-Petersburg Functional Programming User Group}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}
+\frametitle{Outline}
+\tableofcontents
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}
+  \frametitle{Introduction}
+  \url{http://jkff.info/software/timeplotters}
+
+  Tools for visualizing program behavior from logs, optimized for one-liners.
+
+  \begin{itemize}
+    \item \textbf{timeplot}~--- quantitative graphs about multiple event streams.
+    \begin{itemize}
+      \item Histograms of event durations, of types of events, regular line/dot plots etc.
+    \end{itemize}
+    \item \textbf{splot}~--- Gantt-like chart about a large number of concurrent processes.
+    \begin{itemize}
+      \item Birds-eye view of thread/process/machine interaction patterns
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Live demo}
+
+  \begin{center}
+  Live demo
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Why optimize}
+  Because they were slow and a memory hog (boxing, thunks).
+  \begin{itemize}
+    \item Took minutes for 100,000's of events
+    \item Took hours or crashed for 1,000,000's of events
+    \begin{itemize}
+    \item Crashing was the last straw. I couldn't do my job.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{How to optimize}
+  Rewrite in C or Java? We can do better!
+  \begin{itemize}
+    \item It would be a defeat :)
+    \item Would rewrite and re-debug everything
+    \item Would learn nothing
+  \end{itemize}
+  Turned out worth it.
+\end{frame}
+
+\section{splot}
+
+\begin{frame}
+  \frametitle{splot}
+  The easy one.
+
+  \begin{columns}[t]
+    \column{.5\textwidth}
+    \begin{block}{Before}
+    \begin{enumerate}
+      \item Read input into a list
+      \item Traverse to calibrate axes
+      \item Traverse to render
+    \end{enumerate}
+    \end{block}
+
+    \column{.5\textwidth}
+    \begin{block}{After}
+    \begin{enumerate}
+      \item Read input into a list
+      \item Traverse to calibrate axes
+      \item Read input into a list
+      \item Traverse to render
+    \end{enumerate}
+    Lazy IO does the rest.
+    \end{block}
+  \end{columns}
+  \vskip10px
+  Cost: no output to window, no input from stdin.
+
+  Code tour.
+\end{frame}
+
+\section{tplot}
+
+\begin{frame}
+  \frametitle{tplot: why it can NOT be done}
+  The hard one.
+
+  \begin{itemize}
+    \item Complex data flow: events:tracks = M:M.
+    \item Uses Chart, which keeps data in memory and for good reasons.
+  \end{itemize}
+
+  Code tour: old version.
+\end{frame}
+
+\begin{frame}
+  \frametitle{tplot: why it CAN be done}
+
+  Reading too much $\neq$ drawing too much $\Rightarrow$ Chart is not a problem.
+
+  \vskip10px
+
+  Building ``data to render'' for Chart in 1 pass seemed \emph{possible}.
+
+  \vskip10px
+
+  Code tour: PlotData, Render.hs
+\end{frame}
+
+\begin{frame}
+  \frametitle{tplot: main idea}
+  
+  Push-based:
+  \begin{itemize}
+    \item List representation unchanged and hidden
+    \item Push item
+    \item Get result (at any moment)
+  \end{itemize}
+
+  \vskip10px
+
+  \emph{Code tour: StreamSummary.
+  
+  Live example: average + profiling. 
+  
+  Applicative average.}
+\end{frame}
+
+\section{Types of stream operations}
+
+\begin{frame}
+  \frametitle{Types of stream operations}
+
+  \begin{center}
+  \begin{tabular}{ccc}
+    Concept & Logical type & Actual type \\
+    \hline
+    Summarize & \texttt{[a] $\to$ b}  & Summary a b \\
+    Transform & \texttt{[a] $\to$ [b]} & Summary b r $\to$ Summary a r \\
+    Generate & \texttt{a $\to$ [b]} & Summary b r $\to$ (a $\to$ r) \\
+  \end{tabular}
+  \end{center}
+
+  \vskip10px
+
+  Composition pipelines become quite funny.
+
+  \vskip10px
+
+  \emph{Code tour: RLE etc.}
+\end{frame}
+
+\begin{frame}
+  \frametitle{tplot: new architecture}
+  New architecture:
+  \begin{itemize}
+    \item Push-based builders for all plot types
+    \item Driver loop to feed input events to output tracks
+    \item When done, summarize and render
+  \end{itemize}
+  \emph{Code tour: driver loop, plots (vs old code).}
+\end{frame}
+
+\section{The transition}
+
+\begin{frame}
+  \frametitle{tplot: the transition}
+  I wanted to keep things working all the time.
+
+  \begin{enumerate}
+    \item Change interface~--- make the change possible.
+    \item Change implementation~--- make the change real.
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+  \frametitle{tplot: the transition}
+  Before: Completely non-incremental.
+  \begin{itemize}
+    \item \emph{(interface)} Separate building and rendering
+    \item Split into modules
+    \item \emph{(interface)} Explicit 2 passes, both \emph{potentially} incremental
+    \item Toying with incremental combinators to get a feeling for them
+    \item \emph{(interface)} Make all plots have an incremental interface \\
+    (but actually use \texttt{toList} bridge)
+    \item \emph{(implementation)} Incrementalize plots one by one
+  \end{itemize}
+  After: Completely incremental.
+\end{frame}
+
+\section{Optimization}
+
+\begin{frame}
+  \frametitle{Not so easy}
+  Memory leaks due to insufficient strictness:\\
+  ``push isn't pushing hard enough.''
+
+  \begin{center}
+  \begin{block}{Question}
+  What and why remains unevaluated until too late?
+  \end{block}
+  \end{center}
+
+  \textbf{Profilers} didn't help at all. \textbf{Debug.Trace} is insufficient: it outputs lines and I need \emph{hierarchy}, not sequence.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Enter Debug.HTrace}
+
+  \texttt{cabal install htrace}
+
+  ``Code'' ``tour''. Live demo: average.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Why not X?}
+
+  Iteratee, conduit, pipes, $\ldots$
+
+  \begin{itemize}
+    \item Scary, so I tried to get as far as I can without them
+    \item Ended up very small, simple and nice, so I didn't look back
+    \item Also educational
+  \end{itemize}
+\end{frame}
+
+\section{Lessons learnt}
+
+\begin{frame}
+  \frametitle{Lessons learnt}
+
+  \begin{itemize}
+    \item Lazy IO is ok for this task
+    \item Debugging laziness is hard: I wouldn't start a high-risk real-time project in Haskell
+    \item Profilers are almost useless for debugging laziness
+    \item Debug.Trace is better, Debug.HTrace much better
+    \item Push-based incremental processing is fun and easy
+  \end{itemize}
+\end{frame}
+
+\end{document}
