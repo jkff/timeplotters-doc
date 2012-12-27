@@ -1,5 +1,3 @@
-.. _introduction:
-
 *By Eugene Kirpichov <ekirpichov@gmail.com>*
 
 **splot** and **timeplot** (*timeplotters*) are command-line tools for visualizing temporal data, especially useful for visualizing data from ad-hoc program logs to help you spot patterns and anomalies that you would not spot otherwise (by just watching how the program works, or by looking at the logs with the naked eye).
@@ -10,13 +8,29 @@ The tools take input in a simple text format that's easy to generate from a typi
 
 They have been specifically designed for working with program logs: the input format is tailored to event types typically seen in program logs and the visualization methods are tailored to the questions typically asked about program performance (e.g. distribution of activity durations).
 
-How is this better than Excel or R?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. figure:: pics/tplot/graphov-txcommit-bythread.png  
+  :width: 40%
+  :align: center                                      
+                                                      
+  An example of **timeplot**                          
+.. figure:: pics/splot/splot-main-example.png
+  :width: 40%                               
+  :align: center                             
+                                             
+  An example of **splot**                    
+
+
+
+How is this better than Excel, R or gnuplot?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Timeplotters:** You take a log, write a **one-liner to produce input** for the tools, write a **one-liner to plot a graph** of interest. It takes 1 minute and gives you instant gratification. You find something peculiar in the graph and decide to look at the same log from a different perspective. It takes you another 1 minute to do so.
 
 **Excel or R:** You take a log, come up with the kind of columns you'll have in your CSV, write a small program to produce the CSV from the raw log, or perhaps even modify the original application to write logs better suited for converting to Excel input (because the inputs Excel can visualize do not match closely with what logs usually contain, e.g. to determine the delay between two events in your program, you'll have to do time arithmetic yourself), open Excel, import the CSV and somehow plot it. It takes... well, a while, and next time you're just too lazy to do it again. Sloth inhibits curiosity.
 
+To see how **timeplotters** compares to your favourite visualization tool, we suggest to start by replicating the example from "Getting your hands dirty" below.
+
+For some plot types, you can get pretty close with the magnificent `ggplot2 <http://ggplot2.org/>`_ . Some things are not easily possible in Excel, R or gnuplot at all, e.g. the entire **splot** or **timeplot**'s "activity counters" and duration-based plots. On the other hand, **timeplotters** can only plot data where the X axis is time.
 
 Installation from binaries
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -48,17 +62,7 @@ Get your hands dirty
 ^^^^^^^^^^^^^^^^^^^^
 After blindly following this section, you'll get a feel for what it's like to use these tools. Read the rest of the documentation to understand more.
 
-**Download the example log:** *(generously provided by Paul Graphov)* http://jkff.info/datasets/paul-graphov-drweb.tar.gz. This is a log of DrWeb Antivirus Server, and the most interesting entries in it are those relating to TCP data flow and to DB transactions::
-
-    20121024.114904.78 db3 [  415   448] mth:1  ...:ANTON-WIN7RU: data arrived, 32b
-    20121024.114904.78 tr2 [  415   448] mth:1  ...:ANTON-WIN7RU: rcv 17 GETTIME(6348666174470429760) 0b data
-    20121024.114904.78 db3 [  415   448] mth:1  ...:ANTON-WIN7RU: cancel timeout, GETTIME
-    20121024.114904.78 tr2 [  415   448] mth:1  ...:ANTON-WIN7RU: cmd (49b) "11 TIME 6348666174470429760 6348666174478278600"
-    20121024.114904.78 db3 [  415   448] mth:1  ...:ANTON-WIN7RU: cancel timeout, prolongate
-    20121024.114904.78 db3 [  415   448] mth:1  ...:ANTON-WIN7RU: set timeout to 60000 ms <6348666180478295800>
-    20121024.114904.78 db3 [  415   449] mth:2  ...:ANTON-WIN7RU: data arrived, 14b
-
-and::
+**Download the example log:** *(generously provided by Paul Graphov)* http://jkff.info/datasets/tplot-tutorial.tar.gz. This is a log of DrWeb Antivirus Server. One of the interesting parts is events relating to DB transactions::
 
     20121024.114904.78 db3 [  415   449] mth:2  [DB] Successful BEGIN transaction, 00.000 wait
     20121024.114904.78 db3 [  415   449] mth:2  [IntDB] Statement "..."
@@ -73,17 +77,17 @@ and::
 
 **Generate input for timeplot:** we're going to plot transaction commit rate::
 
-    $ awk '/Successful COMMIT/{print $1 " !commit." $6}' drwcsd.1.log > commit.trace
+    $ awk '/Successful COMMIT/{print $1 " !commit." $6}' tplot-tutorial.log > commit.trace
     $ head commit.trace
-    20121024.114904.78 !commit.mth:2
-    20121024.114904.98 !commit.mth:4
-    20121024.114904.98 !commit.pth:5
-    20121024.114907.96 !commit.mth:1
+    20121024.115520.85 !commit.dbv:0
+    20121024.115537.31 !commit.kth:1
+    20121024.115621.03 !commit.dbv:0
+    20121024.115707.44 !commit.mth:0
     ...
 
 **Invoke timeplot** to build a graph of transaction commit rates by thread id (the part after ".")::
 
-   $ tplot -if commit.trace -o commit.png -tf '%Y%m%d.%H%M%OS' -dk 'within[.] acount 5' 
+   $ tplot -if commit.trace -o commit.png -tf '%Y%m%d.%H%M%OS' -dk 'within[.] acount 5'
 
 **Behold the result:**
 
@@ -93,6 +97,8 @@ and::
 This shows the total transaction commit rate per second and how it adds up from commits of transactions in individual threads.
 
 Now you know what to expect and are perhaps interested in learning more. If so, read on.
+
+.. _introduction:
 
 Actual introduction
 ===================
