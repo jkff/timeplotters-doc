@@ -34,7 +34,11 @@ For some plot types, you can get pretty close with the magnificent `ggplot2 <htt
 
 Installation from binaries
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-*(necessary only on Linuxes)* Install `Cairo runtime libraries <http://cairographics.org/>`_: ``sudo apt-get install libcairo`` or like that.
+*(skip this step on Windows)* Install `Cairo runtime libraries <http://cairographics.org/>`_:
+
+* **Linuxes**: ``sudo apt-get install libcairo``, or ``sudo yum install libcairo`` or like that.
+* **Mac OS X + MacPorts**: ``sudo port install cairo``
+* **Mac OS X + HomeBrew**: Install `XQuartz <http://xquartz.macosforge.org/landing/>`_, then ``brew install cairo``
 
 **Ubuntu binaries**: http://jkff.info/software/timeplotters/timeplotters-1.0_ubuntu_amd64.tar.gz
 
@@ -46,13 +50,19 @@ Installation from binaries
 
 Installation from source
 ^^^^^^^^^^^^^^^^^^^^^^^^
-To install from source, you will need `Haskell Platform <http://hackage.haskell.org/platform/>`_ and `Cairo run-time and development libraries <http://cairographics.org/>`_ (``sudo apt-get install libcairo libcairo-dev`` or alike) - then do::
 
-  cabal update
-  cabal install gtk2hs-buildtools
-  cabal install timeplot splot
+* Install `Haskell Platform <http://hackage.haskell.org/platform/>`_
+* Install `Cairo run-time and development libraries <http://cairographics.org/>`_ as above (Linuxes: ``sudo apt-get install libcairo libcairo-dev`` or alike; Mac: the above procedure with HomeBrew or MacPorts will be sufficient)
+* *(Mac+HomeBrew only)* ``export PKG_CONFIG_PATH="/opt/X11/lib/pkgconfig:$PKG_CONFIG_PATH"``
+* Then perform these commands::
 
-Or just ``git clone`` the repos and do ``cabal install`` inside the cloned directories. The code is hosted at http://github.com/jkff/timeplot and http://github.com/jkff/splot . This manual's source is hosted at http://github.com/jkff/timeplotters-doc .
+    cabal update
+    cabal install gtk2hs-buildtools
+    cabal install timeplot splot
+
+  Or just ``git clone`` the repos and do ``cabal install`` inside the cloned directories.
+
+The code is hosted at http://github.com/jkff/timeplot and http://github.com/jkff/splot . This manual's source is hosted at http://github.com/jkff/timeplotters-doc .
 
 Feedback
 ^^^^^^^^
